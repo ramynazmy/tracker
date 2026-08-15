@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
-import type { EntitySchema } from '../config/schema'
+import type { Field } from '../config/schema'
 import { optionsFor, vocabularyOf, type Vocabularies } from '../sheets/lists'
-import { activeFilterCount, filterableFields, NOT_SET, type FilterValues } from '../lib/filters'
+import { activeFilterCount, NOT_SET, type FilterValues } from '../lib/filters'
 
 /**
  * Filter state lives in the URL.
@@ -11,7 +11,7 @@ import { activeFilterCount, filterableFields, NOT_SET, type FilterValues } from 
  * you can send to someone. HashRouter puts the query after the hash path, which
  * `useSearchParams` handles unchanged.
  */
-export function useEntityFilters(entity: EntitySchema): {
+export function useEntityFilters(fields: readonly Field[]): {
   values: FilterValues
   setValue: (key: string, value: string) => void
   clear: () => void
@@ -20,7 +20,7 @@ export function useEntityFilters(entity: EntitySchema): {
   const [params, setParams] = useSearchParams()
 
   const values: FilterValues = {}
-  for (const field of filterableFields(entity)) {
+  for (const field of fields) {
     values[field.key] = params.get(field.key) ?? ''
   }
 
@@ -43,7 +43,9 @@ export function useEntityFilters(entity: EntitySchema): {
 }
 
 interface Props {
-  entity: EntitySchema
+  /** Which fields to offer. Callers may mix fields from more than one entity —
+      the timeline filters by a feature's channel and an action's actor. */
+  fields: readonly Field[]
   vocabularies: Vocabularies
   values: FilterValues
   onChange: (key: string, value: string) => void
@@ -57,15 +59,13 @@ interface Props {
  * inside a card, so every view below re-renders against the same slice.
  */
 export default function EntityFilters({
-  entity,
+  fields,
   vocabularies,
   values,
   onChange,
   onClear,
   extraOptions,
 }: Props) {
-  const fields = filterableFields(entity)
-
   return (
     <div className="filters">
       {fields.map((field) => {

@@ -753,3 +753,109 @@ a.stat:hover {
   color: var(--accent);
   text-decoration: underline;
 }
+
+/* ---------------------------------------------------------------------------
+   Timeline
+   Past is solid, future hollow, overdue flagged in words as well as colour —
+   shape and text carry the state so nothing depends on colour alone.
+   --------------------------------------------------------------------------- */
+
+.tl-month {
+  margin-top: 1.75rem;
+}
+
+.tl-month__label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+
+.tl {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tl__item {
+  display: grid;
+  grid-template-columns: 6.5rem 1rem 1fr;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  /* The spine: a recessive hairline, solid — never dashed. */
+  background: linear-gradient(var(--line), var(--line)) 7.25rem 0 / 1px 100% no-repeat;
+}
+
+.tl__item:last-child {
+  background-size: 1px 1.1rem;
+}
+
+.tl__item--future .tl__title,
+.tl__item--future .tl__date {
+  color: var(--muted);
+}
+
+.tl__date {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  text-align: right;
+  padding-top: 0.1rem;
+}
+
+/* ≥8px, with a 2px surface ring so it stays legible where it meets the spine. */
+.tl__dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 0.4rem;
+  border-radius: 50%;
+  background: var(--mark);
+  box-shadow: 0 0 0 2px var(--bg);
+  justify-self: center;
+}
+
+.tl__dot--hollow {
+  background: var(--bg);
+  border: 2px solid var(--mark);
+}
+
+.tl__dot--overdue {
+  background: var(--warn-line);
+  border-color: var(--warn-line);
+}
+
+.tl__body {
+  min-width: 0;
+}
+
+.tl__title {
+  margin: 0;
+}
+
+.tl__kind {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-right: 0.15rem;
+}
+
+.tl__flag {
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--warn-line);
+  background: var(--warn-bg);
+  font-size: 0.72rem;
+}
+
+.tl__meta {
+  margin: 0.1rem 0 0;
+  font-size: 0.85rem;
+}
+
+.tl__meta a {
+  color: inherit;
+}

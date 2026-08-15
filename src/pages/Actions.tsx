@@ -10,7 +10,7 @@ import { useTracker } from '../data/TrackerDataContext'
 import { useEntityEditor } from '../hooks/useEntityEditor'
 import { canWriteRecords } from '../lib/permissions'
 import { downloadCsv } from '../lib/csv'
-import { applyFilters } from '../lib/filters'
+import { applyFilters, filterableFields } from '../lib/filters'
 import { daysOverdue, isOpenAction, isOwnedAction, orphanActions } from '../lib/rollups'
 
 const FEATURE = entities.feature
@@ -41,7 +41,7 @@ export default function Actions() {
   // Open-first by default: this page is the workbook's "Open Tasks" view, and
   // the whole point of that tab was what still needs doing.
   const [filter, setFilter] = useState<Filter>('open')
-  const filters = useEntityFilters(ACTION)
+  const filters = useEntityFilters(filterableFields(ACTION))
 
   const orphans = useMemo(
     () => orphanActions(actions, new Set(features.map((f) => f.id))),
@@ -99,7 +99,7 @@ export default function Actions() {
       </div>
 
       <EntityFilters
-        entity={ACTION}
+        fields={filterableFields(ACTION)}
         vocabularies={vocabularies}
         values={filters.values}
         onChange={filters.setValue}

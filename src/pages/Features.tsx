@@ -9,7 +9,7 @@ import { useTracker } from '../data/TrackerDataContext'
 import { useEntityEditor } from '../hooks/useEntityEditor'
 import { canWriteRecords } from '../lib/permissions'
 import { downloadCsv } from '../lib/csv'
-import { applyFilters } from '../lib/filters'
+import { applyFilters, filterableFields } from '../lib/filters'
 
 const FEATURE = entities.feature
 
@@ -18,7 +18,7 @@ export default function Features() {
   const { features, vocabularies, openActionCounts, loading, error, loadedAt, refresh } =
     useTracker()
   const editor = useEntityEditor(FEATURE)
-  const filters = useEntityFilters(FEATURE)
+  const filters = useEntityFilters(filterableFields(FEATURE))
 
   // Filters narrow before the table's own free-text search, so the "N of M"
   // count below reads against the filtered slice rather than all 108.
@@ -57,7 +57,7 @@ export default function Features() {
       </div>
 
       <EntityFilters
-        entity={FEATURE}
+        fields={filterableFields(FEATURE)}
         vocabularies={vocabularies}
         values={filters.values}
         onChange={filters.setValue}
