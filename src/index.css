@@ -1,0 +1,549 @@
+:root {
+  --bg: #ffffff;
+  --fg: #16181d;
+  --muted: #5f6672;
+  --line: #e3e6ea;
+  --accent: #2f6feb;
+  --ok-bg: #eef7ef;
+  --ok-line: #b8dcc0;
+  --warn-bg: #fdf5e6;
+  --warn-line: #e8d09a;
+
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.55;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --fg: #e9ecf1;
+    --muted: #9aa3b0;
+    --line: #2a2f37;
+    --accent: #6ea0ff;
+    --ok-bg: #17251a;
+    --ok-line: #2f5738;
+    --warn-bg: #2a2114;
+    --warn-line: #5c4820;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.app__bar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.app__brand {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.app__nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.app__nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.app__nav a:hover {
+  color: var(--accent);
+}
+
+.app__main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.35rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.card {
+  margin-top: 1.5rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.card p {
+  margin: 0.4rem 0 0;
+}
+
+.card ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.card--ok {
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+}
+
+.card--warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875em;
+}
+
+.kv {
+  margin-top: 1.25rem;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.kv th,
+.kv td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.kv th {
+  width: 9rem;
+  font-weight: 550;
+  color: var(--muted);
+}
+
+.kv td {
+  word-break: break-all;
+}
+
+/* --- auth screens ------------------------------------------------------- */
+
+.centered {
+  max-width: 30rem;
+  margin: 3rem auto 0;
+  text-align: center;
+}
+
+.centered .card {
+  text-align: left;
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.btn {
+  font: inherit;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn--primary {
+  margin-top: 1.25rem;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  color: #fff;
+  filter: brightness(1.08);
+}
+
+.btn--link {
+  border: none;
+  padding: 0.25rem 0.4rem;
+  color: var(--muted);
+}
+
+.card--info {
+  background: transparent;
+}
+
+.app__user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.app__role {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.68rem;
+  font-weight: 650;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+/* --- records ------------------------------------------------------------ */
+
+.app__main--wide {
+  max-width: 64rem;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.page-head p {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.input {
+  font: inherit;
+  flex: 1;
+  max-width: 22rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--fg);
+}
+
+.input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.records {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.records th,
+.records td {
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.records thead th {
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.th-sort {
+  font: inherit;
+  font-weight: 550;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.th-sort:hover {
+  color: var(--accent);
+}
+
+.records tbody tr:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.cell--number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell--date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chip {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 0.82em;
+}
+
+/**
+ * A value the Lists tab has never heard of — someone typed into the sheet
+ * directly. A RETIRED value is deliberately not flagged: it is known, just no
+ * longer offered, and flagging it would light up every record still using it.
+ */
+.chip--unknown {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+}
+
+/* Feature detail: the summary card above the actions table. */
+.detail-grid {
+  margin: 1.25rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem 1.5rem;
+}
+
+.detail-grid__pair dt {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.detail-grid__pair dd {
+  margin: 0.15rem 0 0;
+}
+
+.detail-notes {
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--line);
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+
+.skeleton {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.skeleton__row {
+  height: 2.2rem;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--line) 25%, transparent 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton__row {
+    animation: none;
+  }
+}
+
+/* --- forms & dialog ----------------------------------------------------- */
+
+.row--tight {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.records__actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.btn--danger:hover:not(:disabled) {
+  color: #d4463c;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 55%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4rem 1rem;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.dialog {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: min(34rem, 100%);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
+}
+
+.dialog h2 {
+  margin: 0 0 1.15rem;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+.dialog__actions .btn--primary {
+  margin-top: 0;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.field__label {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.field__required {
+  color: var(--accent);
+}
+
+.field .input {
+  width: 100%;
+  max-width: none;
+}
+
+.input--error {
+  border-color: #d4463c;
+}
+
+.field__error {
+  margin: 0.3rem 0 0;
+  font-size: 0.83rem;
+  color: #d4463c;
+}
+
+/* Not an error: the stored value is no longer offered, but it still saves. */
+.field__hint {
+  margin: 0.3rem 0 0;
+  font-size: 0.83rem;
+  color: var(--muted);
+}
+
+textarea.input {
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* --- users admin -------------------------------------------------------- */
+
+.steps {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.steps li {
+  margin-bottom: 0.2rem;
+}
+
+.chip--self {
+  margin-left: 0.5rem;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.input--inline {
+  padding: 0.25rem 0.4rem;
+  max-width: 9rem;
+}
+
+.add-user {
+  margin-top: 2rem;
+}
+
+.add-user h2 {
+  font-size: 1rem;
+  margin: 0 0 0.6rem;
+}
+
+.add-user__row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.add-user__row .input {
+  flex: 1 1 12rem;
+  max-width: none;
+}
+
+.add-user__row .btn--primary {
+  margin-top: 0;
+}
+
+/* --- offline banner ----------------------------------------------------- */
+
+.banner {
+  background: var(--warn-bg);
+  border-bottom: 1px solid var(--warn-line);
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.steps a,
+.card--info a {
+  color: var(--accent);
+}
+
+.btn--inline {
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+}

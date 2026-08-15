@@ -1,0 +1,50 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets you redeploy from the Actions tab without a dummy commit.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  # Required: deploy-pages authenticates via OIDC. Omitting this fails with a
+  # permissions error that does not obviously point back at this line.
+  id-token: write
+
+# Two pushes in quick succession would otherwise race, and the older build can win.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Pinned to LTS. Local dev is on Node 26; Vite is happy with either,
+          # but CI should build on a stable release.
+          node-version: 22
+          cache: npm
+
+      # ci, not install — respects the lockfile so CI builds what you tested.
+      - run: npm ci
+      - run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

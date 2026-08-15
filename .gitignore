@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+.env.local
+.env.*.local
+
+# Source workbooks and anything derived from them. These carry real delivery
+# data — feature names, owners, release plans — and every file in this repo
+# ships in the bundle GitHub Pages serves publicly.
+*.xlsm
+*.xlsx
+scripts/out/
