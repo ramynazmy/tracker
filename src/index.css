@@ -923,12 +923,23 @@ a.stat:hover {
 
 .channels {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
+  /* Wide enough for a release row's fixed columns plus a readable name. Below
+     this the cards stack instead of squeezing the name to nothing. */
+  grid-template-columns: repeat(auto-fit, minmax(25rem, 1fr));
   gap: 1rem;
   margin-bottom: 2.5rem;
 }
 
 .channel {
+  /* The measurements the legend, the release rows and the feature buttons all
+     have to agree on for the card to line up. */
+  --rel-gutter: 0.9rem;
+  --rel-meter: 4.25rem;
+  --rel-count: 2.9rem;
+  --rel-flags: 8.25rem;
+  --rel-gap: 0.45rem;
+  --rel-pad: 0.35rem;
+
   padding: 1rem 1.15rem 1.15rem;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -939,6 +950,10 @@ a.stat:hover {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
+  /* The release rows are inset by this much so their hover state has room;
+     matching it here puts the channel total on the flags column's right edge
+     and the channel name on the chevron's left edge. */
+  padding: 0 var(--rel-pad);
   margin-bottom: 0.85rem;
 }
 
@@ -961,18 +976,29 @@ a.stat:hover {
    releases because a legend that follows the marks it explains is read too
    late to help. */
 .channel__legend {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--rel-gutter) auto;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--rel-gap);
+  /* Same left inset as a release row, so the swatch sits in the chevron's
+     column and the caption starts exactly where the release names start. */
+  padding-left: var(--rel-pad);
   margin: 0 0 0.7rem;
   font-size: 0.85rem;
 }
 
+/* Always rendered, even with nothing to mark: dropping it would put the
+   caption in the gutter column and wrap it a word per line. */
 .channel__legend-swatch {
+  justify-self: center;
   width: 9px;
   height: 9px;
   border-radius: 2px;
   background: var(--live);
+}
+
+.channel__legend-swatch--quiet {
+  background: none;
 }
 
 .channel__releases {
@@ -991,13 +1017,24 @@ a.stat:hover {
 }
 
 .rel__summary {
+  /* Every track is fixed except the name, so the meter, the count and the
+     flags sit at the same x on every row of every card. The flags column is
+     fixed too, and that is the whole point: an `auto` trailing column takes
+     its width from its own content, which pushes the 1fr name column to a
+     different size on each row — which is exactly why these used to drift. */
   display: grid;
-  grid-template-columns: 0.85rem minmax(4rem, 1fr) 5.5rem 2.6rem auto;
+  grid-template-columns:
+    var(--rel-gutter)
+    minmax(3rem, 1fr)
+    var(--rel-meter)
+    var(--rel-count)
+    var(--rel-flags);
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.4rem;
+  gap: var(--rel-gap);
+  padding: 0.3rem var(--rel-pad);
   border-radius: 8px;
   font-size: 0.9rem;
+  line-height: 1.4;
   cursor: pointer;
   list-style: none;
 }
@@ -1018,9 +1055,10 @@ a.stat:hover {
 
 /* A CSS triangle, so the affordance costs no font and no icon set. */
 .rel__chevron {
+  flex: none;
+  justify-self: center;
   width: 0;
   height: 0;
-  margin-left: 0.15rem;
   border-left: 5px solid var(--muted);
   border-top: 4px solid transparent;
   border-bottom: 4px solid transparent;
@@ -1037,19 +1075,35 @@ a.stat:hover {
   }
 }
 
-/* The grid supplies the gap; the inline meter's own margin would double it. */
+/* The row supplies the gap; the inline meter's own margin would double it. */
 .rel__summary .meter--inline {
   width: 100%;
   margin-right: 0;
 }
 
 .rel__name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.rel__stat {
+.rel__count {
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* One cell for the three flags, right-aligned so they read as a column of
+   their own. It wraps rather than clips on the rare row carrying all three. */
+.rel__flags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.1rem 0.4rem;
   font-size: 0.82rem;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
@@ -1057,7 +1111,9 @@ a.stat:hover {
 }
 
 .rel__body {
-  padding: 0.15rem 0.5rem 0.6rem 1.9rem;
+  /* Lines the feature buttons up with the release name above them. */
+  padding: 0.15rem var(--rel-pad) 0.6rem
+    calc(var(--rel-pad) + var(--rel-gutter) + var(--rel-gap));
 }
 
 .rel__all {
@@ -1154,14 +1210,15 @@ a.stat:hover {
   white-space: nowrap;
 }
 
+/* Now that each stat owns a column, the counts align without a chip to hold
+   them apart — colour alone separates them, and the column does the rest. */
 .rel__live {
-  margin-left: 0.5rem;
-  padding: 0.05rem 0.4rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--live) 45%, var(--line));
-  background: color-mix(in srgb, var(--live) 9%, var(--bg));
   color: color-mix(in srgb, var(--live) 75%, var(--fg));
-  font-size: 0.72rem;
-  white-space: nowrap;
+}
+
+/* The chip's own spacing is for inline use on the timeline; here the flags
+   cell already supplies it. */
+.rel__flags .tl__flag {
+  margin-left: 0;
 }
 

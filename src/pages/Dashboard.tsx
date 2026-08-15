@@ -225,15 +225,22 @@ function ChannelCard({
           the releases below, so this line's only job is to decode the colour
           and give the channel-level count. */}
       <p className="channel__legend">
+        {/* The swatch is rendered either way — its column is what lines the
+            caption up with the release names below. */}
+        <span
+          className={
+            active.length === 0
+              ? 'channel__legend-swatch channel__legend-swatch--quiet'
+              : 'channel__legend-swatch'
+          }
+          aria-hidden="true"
+        />
         {active.length === 0 ? (
           <span className="muted">Nothing has moved in {ACTIVE_WINDOW_DAYS} days</span>
         ) : (
-          <>
-            <span className="channel__legend-swatch" aria-hidden="true" />
-            <span>
-              <strong>{active.length}</strong> active in the last {ACTIVE_WINDOW_DAYS} days
-            </span>
-          </>
+          <span>
+            <strong>{active.length}</strong> active in the last {ACTIVE_WINDOW_DAYS} days
+          </span>
         )}
       </p>
 
@@ -292,11 +299,11 @@ function ReleaseRow({
         <span className="meter meter--inline">
           <span className="meter__fill" style={{ width: `${release.percent}%` }} />
         </span>
-        <span className="rel__stat">
+        <span className="rel__count">
           {release.done}/{release.total}
         </span>
-        <span className="rel__stat">
-          {release.openActions > 0 ? `${release.openActions} open` : ''}
+        <span className="rel__flags">
+          {release.openActions > 0 && <span>{release.openActions} open</span>}
           {release.overdue > 0 && <span className="tl__flag">{release.overdue} overdue</span>}
           {/* Collapsed, this is the only thing saying where the attention is —
               without it, closing the accordion would hide the activity signal
