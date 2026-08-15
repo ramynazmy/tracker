@@ -1377,3 +1377,97 @@ a.stat:hover {
   margin-left: 0;
 }
 
+
+/* ---------------------------------------------------------------------------
+   Lists: managing the vocabularies.
+   Fixed tracks for the same reason the release rows have them — every row is
+   its own grid otherwise, and nothing would line up down the column.
+   --------------------------------------------------------------------------- */
+
+.vocab {
+  list-style: none;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.vocab__row {
+  display: grid;
+  /* The label is capped rather than given the slack: a 1fr label pushes the
+     id half a screen away from the name it belongs to. */
+  grid-template-columns: minmax(6rem, 13rem) minmax(7rem, 1fr) 8rem 5.5rem 9rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.28rem 0.4rem;
+  border-radius: 8px;
+}
+
+.vocab__row:hover {
+  background: var(--tint);
+}
+
+/* Retired: still listed, because the records holding it still resolve through
+   this row. Struck through rather than hidden. */
+.vocab__row--off .vocab__label {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.vocab__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vocab__id {
+  font-size: 0.78rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vocab__scope {
+  font-size: 0.85rem;
+}
+
+.vocab__ours {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.vocab__actions {
+  display: flex;
+  gap: 0.3rem;
+  justify-content: flex-end;
+}
+
+.vocab__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+/* .btn--primary carries a 1.25rem top margin for the form layouts it was
+   written for; in a single-line toolbar that just knocks it out of the row. */
+.vocab__add .btn--primary {
+  margin-top: 0;
+  padding: 0.4rem 1rem;
+}
+
+.vocab__preview {
+  font-size: 0.85rem;
+}
+
+.vocab__preview code,
+.vocab__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

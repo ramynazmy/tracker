@@ -8,6 +8,7 @@ import FeatureDetail from './pages/FeatureDetail'
 import Actions from './pages/Actions'
 import Timeline from './pages/Timeline'
 import Releases from './pages/Releases'
+import Lists from './pages/Lists'
 import Users from './pages/Users'
 import Health from './pages/Health'
 import { canManageUsers } from './lib/permissions'
@@ -46,6 +47,7 @@ export default function App() {
             <Link to="/actions">Actions</Link>
             <Link to="/releases">Releases</Link>
             <Link to="/timeline">Timeline</Link>
+            <Link to="/lists">Lists</Link>
             {isAdmin && <Link to="/users">Users</Link>}
             <Link to="/health">Health</Link>
           </nav>
@@ -73,6 +75,7 @@ export default function App() {
               <Route path="/actions" element={<Actions />} />
               <Route path="/releases" element={<Releases />} />
               <Route path="/timeline" element={<Timeline />} />
+              <Route path="/lists" element={<Lists />} />
               <Route path="/users" element={<Users />} />
               <Route path="/health" element={<Health />} />
               <Route path="*" element={<Navigate to="/features" replace />} />

@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  indexListsSheet,
   isUnknownValue,
   labelFor,
   optionsFor,
   ownedActorIds,
   parseLists,
+  proposeId,
+  slugify,
   vocabularyOf,
 } from './lists'
 import type { Field } from '../config/schema'
@@ -214,5 +217,106 @@ describe('ownedActorIds', () => {
       ['actor', 'new-team', 'New Team', 'ours', true, 2],
     ]
     expect([...ownedActorIds(parseLists(rows), 'architecture')]).toEqual(['new-team'])
+  })
+})
+
+describe('slugify', () => {
+  it('makes a readable id from a typed name', () => {
+    expect(slugify('Business Banking')).toBe('business-banking')
+  })
+
+  it('collapses punctuation and runs of separators', () => {
+    expect(slugify('DXP - CRX (Decommission)')).toBe('dxp-crx-decommission')
+  })
+
+  it('trims leading and trailing separators', () => {
+    expect(slugify('  R2.5  ')).toBe('r2-5')
+  })
+
+  it('folds accents rather than dropping the letter', () => {
+    // "Reseau" and "Réseau" must not become two different ids.
+    expect(slugify('Réseau')).toBe(slugify('Reseau'))
+  })
+
+  it('returns empty for a name with nothing to slug', () => {
+    expect(slugify('—')).toBe('')
+  })
+})
+
+describe('proposeId', () => {
+  it('prefixes a release with its channel', () => {
+    // Release ids are scoped: R6 under two channels is two releases, and an
+    // unprefixed id would silently merge them.
+    expect(proposeId('release', 'R6', 'business-banking')).toBe('business-banking-r6')
+    expect(proposeId('release', 'R6', 'retail-banking')).toBe('retail-banking-r6')
+  })
+
+  it('leaves every other kind unprefixed', () => {
+    expect(proposeId('channel', 'Retail Banking', null)).toBe('retail-banking')
+    // An actor carries `ours` in parent, which is a marker and not a scope.
+    expect(proposeId('actor', 'Delivery', 'ours')).toBe('delivery')
+  })
+
+  it('is empty when the label has nothing to slug, so the caller can refuse', () => {
+    expect(proposeId('channel', '!!', null)).toBe('')
+  })
+})
+
+describe('indexListsSheet', () => {
+  const rows = [
+    HEADERS,
+    ['channel', 'retail-banking', 'Retail Banking', '', true, 1],
+    ['channel', 'business-banking', 'Business Banking', '', true, 2],
+    ['release', 'retail-banking-r6', 'R6', 'retail-banking', true, 7],
+  ]
+
+  it('resolves a row number for each value', () => {
+    const index = indexListsSheet(rows)
+    // Row 1 is the header, so the first value is row 2.
+    expect(index.rowNumberOf.get('channel\u0000retail-banking')).toBe(2)
+    expect(index.rowNumberOf.get('release\u0000retail-banking-r6')).toBe(4)
+  })
+
+  it('keeps counting rows past a stray note, so later writes stay on target', () => {
+    const withNote = [HEADERS, ['channel', 'retail-banking', 'Retail', '', true, 1], ['not a value'], ['channel', 'x', 'X', '', true, 2]]
+    expect(indexListsSheet(withNote).rowNumberOf.get('channel\u0000x')).toBe(4)
+  })
+
+  it('reads column positions from the header rather than assuming order', () => {
+    const shuffled = [
+      ['label', 'kind', 'id'],
+      ['Retail Banking', 'channel', 'retail-banking'],
+    ]
+    const index = indexListsSheet(shuffled)
+    expect(index.position.get('id')).toBe(2)
+    expect(index.rowNumberOf.get('channel\u0000retail-banking')).toBe(2)
+  })
+
+  it('tracks the highest order per kind, so a new value lands last', () => {
+    const index = indexListsSheet(rows)
+    expect(index.maxOrder.get('channel')).toBe(2)
+    expect(index.maxOrder.get('release')).toBe(7)
+  })
+
+  it('survives an empty sheet', () => {
+    expect(indexListsSheet([]).rowNumberOf.size).toBe(0)
+  })
+
+  it('keeps the first of two duplicate ids, matching parseLists', () => {
+    const dupes = [HEADERS, ['channel', 'a', 'First', '', true, 1], ['channel', 'a', 'Second', '', true, 2]]
+    expect(indexListsSheet(dupes).rowNumberOf.get('channel\u0000a')).toBe(2)
+  })
+})
+
+describe('parseLists — all', () => {
+  it('keeps retired values out of active but present in all', () => {
+    const rows = [
+      HEADERS,
+      ['channel', 'live', 'Live', '', true, 1],
+      ['channel', 'gone', 'Gone', '', false, 2],
+    ]
+    const v = vocabularyOf(parseLists(rows), 'channel')
+    expect(v.active.map((i) => i.id)).toEqual(['live'])
+    expect(v.all.map((i) => i.id)).toEqual(['live', 'gone'])
   })
 })

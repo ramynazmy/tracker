@@ -181,9 +181,23 @@ tabs, are protected ranges.
 **Adding a channel, release, owner, platform or status is NOT one of these.**
 Those are rows in the `Lists` tab, editable by any editor, and the app picks
 them up on its next load with no deploy. That is the entire point of the
-`reference` field type — do not add them to `schema.ts`. After editing `Lists`,
-run `refreshValidation()` so the *in-sheet* dropdowns catch up; the app does not
-need it.
+`reference` field type — do not add them to `schema.ts`. The **Lists page**
+(`src/pages/Lists.tsx`) does it from the app; `createListValue` /
+`updateListValue` in `src/sheets/lists.ts` are the writes. Two invariants there
+are load-bearing, and both follow from records storing the id:
+
+- **An id is immutable.** `updateListValue`'s patch type has no `id` field on
+  purpose. Changing one strands every record carrying the old value with
+  nothing to report the breakage. Renaming is a `label` edit.
+- **Retire, never delete.** `active = FALSE` keeps the row resolving to a label
+  for the records that hold it; a deleted row turns those into unknown-value
+  warnings across the app.
+
+Unlike an entity write, these write single cells rather than the whole row —
+there is no formula hazard to justify the wide write, and a narrow one cannot
+clobber a column this code has never heard of. Row numbers are still re-read
+immediately beforehand. After editing `Lists`, run `refreshValidation()` so the
+*in-sheet* dropdowns catch up; the app does not need it.
 
 These do need an admin acting in Google Sheets:
 

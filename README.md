@@ -63,8 +63,18 @@ Two rules make that safe:
 Releases are scoped to a channel via the `parent` column, so `R6` under one channel is a different
 release from `R6` under another. Choosing a Channel in the form narrows the Release dropdown.
 
-After editing `Lists`, run `refreshValidation()` in Apps Script to update the *in-sheet* dropdowns.
-The app does not need it.
+**Edit them on the Lists page** (in the app, any editor). Add or rename a channel, a release or a
+"Done by" actor without opening the spreadsheet. Two things that screen will not let you do, both
+on purpose:
+
+- **Change an id.** Records store the id, so changing one strands every feature and action holding
+  the old value — silently, because there is no foreign key to cascade through. Renaming edits the
+  label, which is the part people read.
+- **Delete a value.** Retire it instead: it vanishes from every dropdown while the records already
+  carrying it keep resolving to a name.
+
+After editing `Lists` — from the app or in the sheet — run `refreshValidation()` in Apps Script to
+update the *in-sheet* dropdowns. The app does not need it.
 
 ## Commands
 
