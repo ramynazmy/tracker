@@ -24,7 +24,6 @@ export default function Dashboard() {
     actions,
     vocabularies,
     ownedActors,
-    featureNames,
     loading,
     error,
     loadedAt,
@@ -129,7 +128,6 @@ export default function Dashboard() {
             releases={channel.releases}
             active={channel.active}
             vocabularies={vocabularies}
-            featureNames={featureNames}
           />
         ))}
       </div>
@@ -187,25 +185,30 @@ export default function Dashboard() {
  * showed before — the expansion is additive, so the dashboard does not get
  * longer just because a channel has 35 features.
  */
+/** A feature's recent activity plus where it sits in the channel's order. */
+type RankedActivity = FeatureActivity & { rank: number }
+
 function ChannelCard({
   channelId,
   releases,
   active,
   vocabularies,
-  featureNames,
 }: {
   channelId: string
   releases: ReleaseGroup[]
   active: FeatureActivity[]
   vocabularies: Vocabularies
-  featureNames: ReadonlyMap<string, string>
 }) {
   const total = releases.reduce((n, r) => n + r.total, 0)
   const done = releases.reduce((n, r) => n + r.done, 0)
   const percent = total === 0 ? 0 : Math.round((done / total) * 100)
   const channelLabel = channelId === '' ? 'No channel' : labelFor(vocabularies, 'channel', channelId)
   const channelHref = `/features?channel=${encodeURIComponent(channelId || NOT_SET)}`
-  const activeIds = new Set(active.map((a) => a.featureId))
+  // Ranked, because the buttons sort by it: `recentActivity` already returns
+  // most-recently-moved first, so the index IS the order to show them in.
+  const activity = new Map<string, RankedActivity>(
+    active.map((a, rank) => [a.featureId, { ...a, rank }]),
+  )
 
   return (
     <section className="channel">
@@ -218,42 +221,32 @@ function ChannelCard({
         </span>
       </header>
 
+      {/* The legend, not a second list: the features themselves now live in
+          the releases below, so this line's only job is to decode the colour
+          and give the channel-level count. */}
+      <p className="channel__legend">
+        {active.length === 0 ? (
+          <span className="muted">Nothing has moved in {ACTIVE_WINDOW_DAYS} days</span>
+        ) : (
+          <>
+            <span className="channel__legend-swatch" aria-hidden="true" />
+            <span>
+              <strong>{active.length}</strong> active in the last {ACTIVE_WINDOW_DAYS} days
+            </span>
+          </>
+        )}
+      </p>
+
       <div className="channel__releases">
         {releases.map((release) => (
           <ReleaseRow
             key={release.release || '(none)'}
             release={release}
-            activeIds={activeIds}
+            activity={activity}
             vocabularies={vocabularies}
           />
         ))}
       </div>
-
-      <h4 className="channel__subhead">
-        Active in the last {ACTIVE_WINDOW_DAYS} days
-        <span className="muted"> · {active.length}</span>
-      </h4>
-      {active.length === 0 ? (
-        <p className="muted channel__quiet">Nothing has moved.</p>
-      ) : (
-        <ul className="channel__active">
-          {active.slice(0, 6).map((item) => (
-            <li key={item.featureId}>
-              <Link to={`/features/${encodeURIComponent(item.featureId)}`}>
-                {featureNames.get(item.featureId) ?? 'Unknown feature'}
-              </Link>
-              <span className="muted">
-                {' · '}
-                {item.latest.kind === 'raised' ? 'raised' : 'due'} {item.latest.date}
-                {item.count > 1 && ` · ${item.count} moments`}
-              </span>
-            </li>
-          ))}
-          {active.length > 6 && (
-            <li className="muted">and {active.length - 6} more</li>
-          )}
-        </ul>
-      )}
     </section>
   )
 }
@@ -269,11 +262,11 @@ function ChannelCard({
  */
 function ReleaseRow({
   release,
-  activeIds,
+  activity,
   vocabularies,
 }: {
   release: ReleaseGroup
-  activeIds: ReadonlySet<string>
+  activity: ReadonlyMap<string, RankedActivity>
   vocabularies: Vocabularies
 }) {
   const label =
@@ -281,6 +274,15 @@ function ReleaseRow({
   const href =
     `/features?channel=${encodeURIComponent(release.channel || NOT_SET)}` +
     `&release=${encodeURIComponent(release.release || NOT_SET)}`
+
+  // Moved-recently first, in the order they moved; everything else keeps its
+  // existing order, because Array.prototype.sort is stable.
+  const features = [...release.features].sort(
+    (a, b) =>
+      (activity.get(a.id)?.rank ?? Number.MAX_SAFE_INTEGER) -
+      (activity.get(b.id)?.rank ?? Number.MAX_SAFE_INTEGER),
+  )
+  const liveCount = features.filter((f) => activity.has(f.id)).length
 
   return (
     <details className="rel">
@@ -296,16 +298,20 @@ function ReleaseRow({
         <span className="rel__stat">
           {release.openActions > 0 ? `${release.openActions} open` : ''}
           {release.overdue > 0 && <span className="tl__flag">{release.overdue} overdue</span>}
+          {/* Collapsed, this is the only thing saying where the attention is —
+              without it, closing the accordion would hide the activity signal
+              entirely rather than just its detail. */}
+          {liveCount > 0 && <span className="rel__live">{liveCount} active</span>}
         </span>
       </summary>
 
       <div className="rel__body">
         <div className="feats">
-          {release.features.map((feature) => (
+          {features.map((feature) => (
             <FeatureButton
               key={feature.id}
               feature={feature}
-              recent={activeIds.has(feature.id)}
+              recent={activity.get(feature.id)}
               vocabularies={vocabularies}
             />
           ))}
@@ -323,9 +329,9 @@ function ReleaseRow({
  *
  * A `Link` styled as a button, not a `<button>`: this navigates, so it has to
  * keep middle-click, cmd-click and "copy link address". Status rides on the
- * dot's fill and activity on the border — two variables, two channels, never
- * the same one twice — and both are repeated in the `title` so neither is
- * carried by colour alone.
+ * dot's fill and recent movement on the button's own colour — two variables,
+ * two channels, never the same one twice — and a moved-recently button also
+ * carries its date in text, so the hue is a cue and never the message.
  */
 function FeatureButton({
   feature,
@@ -333,7 +339,7 @@ function FeatureButton({
   vocabularies,
 }: {
   feature: TrackerRecord
-  recent: boolean
+  recent: RankedActivity | undefined
   vocabularies: Vocabularies
 }) {
   const status = String(feature.fields.status ?? '')
@@ -343,23 +349,42 @@ function FeatureButton({
   // (`releases.ts`); anything else the vocabulary grows is simply "other",
   // which is why a new status never needs a code change here.
   const state = status === 'done' ? 'done' : status === 'in-progress' ? 'doing' : 'todo'
+  const moment = recent && `${recent.latest.kind === 'raised' ? 'raised' : 'due'} ${recent.latest.date}`
 
   return (
     <Link
-      className={recent ? 'feat feat--recent' : 'feat'}
+      className={recent ? 'feat feat--live' : 'feat'}
       data-state={state}
       to={`/features/${encodeURIComponent(feature.id)}`}
-      title={recent ? `${statusLabel} · active recently` : statusLabel}
+      title={
+        recent
+          ? `${statusLabel} · ${moment}${recent.count > 1 ? ` · ${recent.count} moments` : ''}`
+          : statusLabel
+      }
     >
       <span className="feat__dot" aria-hidden="true" />
       <span className="feat__name">{name}</span>
+      {recent && <span className="feat__when">{shortDate(recent.latest.date)}</span>}
       <span className="sr-only">
         {' — '}
         {statusLabel}
-        {recent && ', active recently'}
+        {moment && `, ${moment}`}
       </span>
     </Link>
   )
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/**
+ * `2026-08-06` → `6 Aug`. Split, never `new Date(iso)`: parsing an ISO date as
+ * UTC and rendering it in local time is exactly the off-by-one-day bug the
+ * date handling elsewhere in this app is careful to avoid.
+ */
+function shortDate(iso: string): string {
+  const [, m, d] = iso.split('-')
+  const month = MONTHS[Number(m) - 1]
+  return month ? `${Number(d)} ${month}` : iso
 }
 
 function Stat({

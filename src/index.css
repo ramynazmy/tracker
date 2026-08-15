@@ -14,6 +14,15 @@
    * wrong here. Re-validate if you change either.
    */
   --mark: #2f6feb;
+  /**
+   * The second categorical hue: "moved recently". Progress and attention are
+   * different variables, so they get different hues rather than two steps of
+   * one — a lighter blue would read as "less done", which is not what it says.
+   * Validated as a pair with --mark on this surface: CVD ΔE 28.9 (protan),
+   * normal-vision 36.4, both inside the light band and ≥3:1. Re-validate the
+   * pair, not the value alone, if either changes.
+   */
+  --live: #eb6834;
   --ok-bg: #eef7ef;
   --ok-line: #b8dcc0;
   --warn-bg: #fdf5e6;
@@ -34,6 +43,9 @@
     --accent: #6ea0ff;
     /* In-band for dark (L 0.48–0.67); #6ea0ff is L 0.713 and fails. */
     --mark: #5a8fe6;
+    /* Stepped for the dark surface, not the light value reused: CVD ΔE 26.6
+       (deutan), normal-vision 29.8, inside the dark band (L 0.48–0.67). */
+    --live: #d95926;
     --ok-bg: #17251a;
     --ok-line: #2f5738;
     --warn-bg: #2a2114;
@@ -935,16 +947,32 @@ a.stat:hover {
   font-size: 1.05rem;
 }
 
-.channel__name a,
-.channel__active a {
+.channel__name a {
   color: inherit;
   text-decoration: none;
 }
 
-.channel__name a:hover,
-.channel__active a:hover {
+.channel__name a:hover {
   color: var(--accent);
   text-decoration: underline;
+}
+
+/* Decodes the --live hue and gives the channel-level count. It sits above the
+   releases because a legend that follows the marks it explains is read too
+   late to help. */
+.channel__legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.7rem;
+  font-size: 0.85rem;
+}
+
+.channel__legend-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--live);
 }
 
 .channel__releases {
@@ -1101,31 +1129,39 @@ a.stat:hover {
   border-color: var(--mark);
 }
 
-/* Activity is a second variable, so it gets a second channel: the border. */
-.feat--recent {
-  border-color: color-mix(in srgb, var(--mark) 55%, var(--line));
-  box-shadow: inset 2px 0 0 var(--mark);
+/* Moved recently: the second hue, on the button itself. Ordered first inside
+   the release, so colour reinforces position rather than replacing it. */
+.feat--live {
+  border-color: color-mix(in srgb, var(--live) 45%, var(--line));
+  background: color-mix(in srgb, var(--live) 9%, var(--bg));
 }
 
-.channel__subhead {
-  margin: 1.1rem 0 0.4rem;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-  font-weight: 650;
+.feat--live:hover {
+  border-color: var(--live);
+  color: inherit;
 }
 
-.channel__active {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.25rem;
-  font-size: 0.9rem;
+.feat--live .feat__name {
+  font-weight: 550;
 }
 
-.channel__quiet {
-  margin: 0;
-  font-size: 0.9rem;
+/* The date, so the hue is never the only thing saying "this moved". */
+.feat__when {
+  flex: none;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--live) 75%, var(--fg));
+  white-space: nowrap;
 }
+
+.rel__live {
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--live) 45%, var(--line));
+  background: color-mix(in srgb, var(--live) 9%, var(--bg));
+  color: color-mix(in srgb, var(--live) 75%, var(--fg));
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
