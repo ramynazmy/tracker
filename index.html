@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light dark" />
+    <!-- Light only, like the bank's own site. This meta is what stops the
+         first paint flashing dark on an OS set to dark, before the stylesheet
+         has loaded and applied `color-scheme: light`. -->
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#022d63" />
     <title>Tracker</title>
   </head>
   <body>

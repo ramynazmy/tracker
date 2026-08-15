@@ -94,19 +94,26 @@ key, client secret, or write-scoped API key would be world-readable.
 - **`HashRouter`**, because Pages has no rewrite rules and would 404 on a hard
   refresh of a deep link. Consequence: an `href="#some-id"` anchor is read as a
   route change and navigates away. Scroll with `scrollIntoView` instead.
+- **The app is light-only, on purpose** — CIB's own site is, and an
+  OS-following app would render dark beside the bank's white pages on a
+  colleague's machine. That takes both `color-scheme: light` in `index.css`
+  and `<meta name="color-scheme" content="light">`, which is what stops the
+  first paint flashing dark before the stylesheet lands. There is no
+  `prefers-color-scheme` block; a validated dark palette is in the history at
+  `c8b577e` if it is ever wanted back.
 - **`--mark` and `--live` are a validated pair, not two colours.** They are the
   CIB brand blue and orange, and the dashboard uses them to separate *progress*
-  from *attention*. Both are checked per mode for colour-blind separation, the
-  mode's OKLCH lightness band and ≥3:1 against that mode's surface — which is
-  why neither is the literal brand hex in every slot (the promo orange is
-  2.72:1 on white). Changing one means re-running the check on **both**, in
-  **both** modes; a token edited alone is how a palette quietly stops being
-  readable. `--brand`, `--brand-deep` and `--brand-orange` hold the untouched
-  brand values everything else derives from.
+  from *attention*. Both are checked for colour-blind separation, the OKLCH
+  lightness band and ≥3:1 against the surface — which is why `--live` is not
+  the literal brand hex (the promo orange is 2.72:1 on white, and a mark needs
+  3:1). Changing one means re-running the check on **both**; a token edited
+  alone is how a palette quietly stops being readable. `--brand`,
+  `--brand-deep` and `--brand-orange` hold the untouched brand values
+  everything else derives from.
 - **The app bar redefines `--fg`, `--muted`, `--accent` and `--line`** inside
   its own rule so its children invert onto navy without a selector each. Add a
   child that reads those tokens and it is themed already; hardcode a colour
-  there and it will be wrong in one of the two modes.
+  there and it will be dark-on-navy.
 
 ## Auth and session
 
