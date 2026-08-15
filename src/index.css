@@ -4,6 +4,16 @@
   --muted: #5f6672;
   --line: #e3e6ea;
   --accent: #2f6feb;
+  /**
+   * The fill for data marks — meter and bars. Deliberately its own token rather
+   * than `--accent`, because the two have different jobs and different rules:
+   * accent is interactive text and needs WCAG text contrast, while a mark needs
+   * ≥3:1 against the surface AND to sit inside the mode's OKLCH lightness band
+   * so it reads as the same weight in both themes. Both values are validated;
+   * `--accent`'s dark step (L 0.713) is outside the dark band and would be
+   * wrong here. Re-validate if you change either.
+   */
+  --mark: #2f6feb;
   --ok-bg: #eef7ef;
   --ok-line: #b8dcc0;
   --warn-bg: #fdf5e6;
@@ -22,6 +32,8 @@
     --muted: #9aa3b0;
     --line: #2a2f37;
     --accent: #6ea0ff;
+    /* In-band for dark (L 0.48–0.67); #6ea0ff is L 0.713 and fails. */
+    --mark: #5a8fe6;
     --ok-bg: #17251a;
     --ok-line: #2f5738;
     --warn-bg: #2a2114;
@@ -546,4 +558,148 @@ textarea.input {
   font: inherit;
   color: var(--accent);
   text-decoration: underline;
+}
+
+/* ---------------------------------------------------------------------------
+   Dashboard
+   Marks stay thin and quiet; the data is the only thing allowed to be loud.
+   Every value here is also readable as text, so nothing is encoded by colour
+   alone and no tooltip gates a number.
+   --------------------------------------------------------------------------- */
+
+/* Refetch holds the previous render rather than flashing a skeleton, which
+   would jump the layout. */
+.is-refetching {
+  opacity: 0.6;
+  transition: opacity 120ms ease-out;
+}
+
+.hero {
+  margin: 1.5rem 0 2rem;
+}
+
+.hero__value {
+  /* Same sans as everything else — a display face here reads as decoration.
+     Proportional figures on purpose: tabular-nums makes a large number loose. */
+  margin: 0;
+  font-size: 3.25rem;
+  line-height: 1.05;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.hero__label {
+  margin: 0.25rem 0 0.85rem;
+  color: var(--muted);
+}
+
+/* The unfilled track is a lighter step of the fill's own hue, so the state
+   reads across the whole bar rather than only where it is filled. */
+.meter {
+  height: 10px;
+  max-width: 34rem;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--mark) 16%, var(--bg));
+  overflow: hidden;
+}
+
+.meter__fill {
+  height: 100%;
+  background: var(--mark);
+  border-radius: 5px;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+a.stat:hover {
+  border-color: var(--accent);
+}
+
+.stat--warn {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+}
+
+.stat__value {
+  font-size: 1.65rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.stat__label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 1.5rem 2.5rem;
+}
+
+.panel__title {
+  font-size: 1rem;
+  margin: 0 0 0.15rem;
+}
+
+.panel__note {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.bars {
+  margin: 0.75rem 0 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: minmax(6rem, 9rem) 1fr 2.5rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bar__label {
+  font-size: 0.9rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.bar__track {
+  height: 10px;
+}
+
+/* 4px rounded data-end, square at the baseline it grows from. No border —
+   separation is the surface gap, never a stroke around the mark. */
+.bar__fill {
+  height: 100%;
+  min-width: 2px;
+  background: var(--mark);
+  border-radius: 0 4px 4px 0;
+}
+
+/* The value rides the bar's tip. tabular-nums here, and only here: these are
+   numbers in a column that must align vertically. */
+.bar__value {
+  margin: 0;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }

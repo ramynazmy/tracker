@@ -2,6 +2,7 @@ import { Link, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth/AuthContext'
 import AuthGate from './components/AuthGate'
 import TrackerDataProvider from './data/TrackerDataProvider'
+import Dashboard from './pages/Dashboard'
 import Features from './pages/Features'
 import FeatureDetail from './pages/FeatureDetail'
 import Actions from './pages/Actions'
@@ -38,6 +39,7 @@ export default function App() {
         <span className="app__brand">Tracker</span>
         {signedIn && (
           <nav className="app__nav">
+            <Link to="/">Dashboard</Link>
             <Link to="/features">Features</Link>
             <Link to="/actions">Actions</Link>
             {isAdmin && <Link to="/users">Users</Link>}
@@ -61,7 +63,7 @@ export default function App() {
               feature's detail page share a single load. */}
           <TrackerDataProvider actorEmail={email}>
             <Routes>
-              <Route path="/" element={<Navigate to="/features" replace />} />
+              <Route path="/" element={<Dashboard />} />
               <Route path="/features" element={<Features />} />
               <Route path="/features/:id" element={<FeatureDetail />} />
               <Route path="/actions" element={<Actions />} />
