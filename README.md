@@ -20,7 +20,8 @@ Sign in with Google, then track two things:
 
 Open a feature to see its actions and raise new ones. The Dashboard leads with percent complete and
 the counts and a card per channel — its releases, and which features have moved in the last two
-weeks; Releases shows how far each channel's releases have got; the Actions page lists
+weeks. Open a release on a card to see its features as buttons: a filled dot is done, a ring is in
+progress, and a marked edge means it has moved recently. Releases shows how far each channel's releases have got; the Actions page lists
 everything still open, with days overdue; the Timeline shows what has happened and what is coming,
 in date order.
 

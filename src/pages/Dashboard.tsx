@@ -180,6 +180,12 @@ export default function Dashboard() {
  * The releases answer "where is the plan", the activity list answers "where is
  * the attention" — a release can be 0% and busy, or 80% and untouched for a
  * month, and only showing both distinguishes them.
+ *
+ * Three levels of disclosure, each with the affordance that fits it: the
+ * channel is a card, a release is a disclosure you open, and a feature is a
+ * button you press to go there. Collapsed, the card shows exactly what it
+ * showed before — the expansion is additive, so the dashboard does not get
+ * longer just because a channel has 35 features.
  */
 function ChannelCard({
   channelId,
@@ -199,6 +205,7 @@ function ChannelCard({
   const percent = total === 0 ? 0 : Math.round((done / total) * 100)
   const channelLabel = channelId === '' ? 'No channel' : labelFor(vocabularies, 'channel', channelId)
   const channelHref = `/features?channel=${encodeURIComponent(channelId || NOT_SET)}`
+  const activeIds = new Set(active.map((a) => a.featureId))
 
   return (
     <section className="channel">
@@ -211,33 +218,16 @@ function ChannelCard({
         </span>
       </header>
 
-      <ul className="channel__releases">
+      <div className="channel__releases">
         {releases.map((release) => (
-          <li key={release.release || '(none)'} className="channel__release">
-            <Link
-              className="channel__release-name"
-              to={
-                `/features?channel=${encodeURIComponent(release.channel || NOT_SET)}` +
-                `&release=${encodeURIComponent(release.release || NOT_SET)}`
-              }
-            >
-              {release.release === ''
-                ? 'No release'
-                : labelFor(vocabularies, 'release', release.release)}
-            </Link>
-            <div className="meter meter--inline">
-              <div className="meter__fill" style={{ width: `${release.percent}%` }} />
-            </div>
-            <span className="channel__release-stat">
-              {release.done}/{release.total}
-            </span>
-            <span className="channel__release-stat">
-              {release.openActions > 0 ? `${release.openActions} open` : ''}
-              {release.overdue > 0 && <span className="tl__flag">{release.overdue} overdue</span>}
-            </span>
-          </li>
+          <ReleaseRow
+            key={release.release || '(none)'}
+            release={release}
+            activeIds={activeIds}
+            vocabularies={vocabularies}
+          />
         ))}
-      </ul>
+      </div>
 
       <h4 className="channel__subhead">
         Active in the last {ACTIVE_WINDOW_DAYS} days
@@ -265,6 +255,110 @@ function ChannelCard({
         </ul>
       )}
     </section>
+  )
+}
+
+/**
+ * One release, as a disclosure.
+ *
+ * Native `<details>` rather than a `useState` toggle: it brings its own
+ * `aria-expanded`, its own keyboard handling, and it survives a re-render
+ * without the dashboard having to hold per-release open state. The summary
+ * carries the whole collapsed row, so nothing is hidden behind the click that
+ * was visible before it.
+ */
+function ReleaseRow({
+  release,
+  activeIds,
+  vocabularies,
+}: {
+  release: ReleaseGroup
+  activeIds: ReadonlySet<string>
+  vocabularies: Vocabularies
+}) {
+  const label =
+    release.release === '' ? 'No release' : labelFor(vocabularies, 'release', release.release)
+  const href =
+    `/features?channel=${encodeURIComponent(release.channel || NOT_SET)}` +
+    `&release=${encodeURIComponent(release.release || NOT_SET)}`
+
+  return (
+    <details className="rel">
+      <summary className="rel__summary">
+        <span className="rel__chevron" aria-hidden="true" />
+        <span className="rel__name">{label}</span>
+        <span className="meter meter--inline">
+          <span className="meter__fill" style={{ width: `${release.percent}%` }} />
+        </span>
+        <span className="rel__stat">
+          {release.done}/{release.total}
+        </span>
+        <span className="rel__stat">
+          {release.openActions > 0 ? `${release.openActions} open` : ''}
+          {release.overdue > 0 && <span className="tl__flag">{release.overdue} overdue</span>}
+        </span>
+      </summary>
+
+      <div className="rel__body">
+        <div className="feats">
+          {release.features.map((feature) => (
+            <FeatureButton
+              key={feature.id}
+              feature={feature}
+              recent={activeIds.has(feature.id)}
+              vocabularies={vocabularies}
+            />
+          ))}
+        </div>
+        <Link className="rel__all" to={href}>
+          Open all {release.total} in Features →
+        </Link>
+      </div>
+    </details>
+  )
+}
+
+/**
+ * A feature as a button.
+ *
+ * A `Link` styled as a button, not a `<button>`: this navigates, so it has to
+ * keep middle-click, cmd-click and "copy link address". Status rides on the
+ * dot's fill and activity on the border — two variables, two channels, never
+ * the same one twice — and both are repeated in the `title` so neither is
+ * carried by colour alone.
+ */
+function FeatureButton({
+  feature,
+  recent,
+  vocabularies,
+}: {
+  feature: TrackerRecord
+  recent: boolean
+  vocabularies: Vocabularies
+}) {
+  const status = String(feature.fields.status ?? '')
+  const name = String(feature.fields.name ?? 'Untitled')
+  const statusLabel = status === '' ? 'No status' : labelFor(vocabularies, 'featureStatus', status)
+  // `done` and `in-progress` are the two ids the rollups already key on
+  // (`releases.ts`); anything else the vocabulary grows is simply "other",
+  // which is why a new status never needs a code change here.
+  const state = status === 'done' ? 'done' : status === 'in-progress' ? 'doing' : 'todo'
+
+  return (
+    <Link
+      className={recent ? 'feat feat--recent' : 'feat'}
+      data-state={state}
+      to={`/features/${encodeURIComponent(feature.id)}`}
+      title={recent ? `${statusLabel} · active recently` : statusLabel}
+    >
+      <span className="feat__dot" aria-hidden="true" />
+      <span className="feat__name">{name}</span>
+      <span className="sr-only">
+        {' — '}
+        {statusLabel}
+        {recent && ', active recently'}
+      </span>
+    </Link>
   )
 }
 
