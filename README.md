@@ -14,11 +14,24 @@ Sign in with Google, then track two things:
 
 - **Features** — a piece of work belonging to a channel and a release, with a status, complexity,
   owner and ASD state.
-- **Actions** — something the architect team has to do about a feature. Each action points at its
-  feature by UUID, so renaming a feature never orphans its actions.
+- **Actions** — something that has to happen about a feature. Each action points at its feature by
+  UUID, so renaming a feature never orphans its actions. Every action has a **type** (the kind of
+  architecture work — solution design, review, impact assessment…) and an **actor** (who does it).
 
-Open a feature to see its actions and raise new ones. The Actions page lists everything still open
-across all features, with days overdue.
+Open a feature to see its actions and raise new ones. The Dashboard leads with percent complete and
+the counts; the Actions page lists everything still open, with days overdue.
+
+### Actions vs events
+
+The Actions tab is the **whole timeline**, not only the architecture team's workload. An action
+whose actor is someone else — Delivery, Vendor, Business — is an *event*: it is there so the
+feature's progress reads end to end, not because anyone here has to do it.
+
+That distinction is load-bearing. A feature's **Open Actions** count, and the dashboard's
+**Open on us** and **Overdue** figures, deliberately count only rows the architecture team owes.
+Filter the Actions page by actor to see everything, or just what is ours.
+
+An action with no actor set counts as ours.
 
 Three roles — `admin`, `editor`, `viewer` — with an admin screen for managing people, CSV export,
 and an audit log of every write.

@@ -7,9 +7,22 @@ Design and phase history: [plan.md](./plan.md). User-facing setup, the access
 runbook and troubleshooting: [README.md](./README.md).
 
 It tracks two entities: a **feature** belongs to a channel and a release; an
-**action** is something the architect team has to do about a feature. Actions
-reference their feature by UUID. Channels, releases, owners and every status are
-**data in the `Lists` tab**, read at runtime — not options in the code.
+**action** is something that has to happen about a feature. Actions reference
+their feature by UUID. Channels, releases, owners, action types and every status
+are **data in the `Lists` tab**, read at runtime — not options in the code.
+
+**The `Actions` tab holds the whole timeline, not just this team's workload.**
+An action's `actor` says who performs it; anything other than `architecture` is
+context — a delivery milestone, a vendor deliverable. That is what "events" are
+here: there is no separate Events entity, an event is an action with a
+non-architecture actor.
+
+Consequently **every rollup must filter through `isOwnedAction`**
+(`src/lib/rollups.ts`). A feature's Open Actions column and the dashboard's
+open/overdue figures answer "what do *we* owe", and counting somebody else's
+milestone makes them answer nothing in particular. A blank actor counts as
+ours: the field was added after the fact, and defaulting blanks out would zero
+every rollup at once.
 
 ## Commands
 
