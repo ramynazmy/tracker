@@ -1,9 +1,20 @@
 :root {
+  /**
+   * CIB brand, sampled from the bank's own site: the header blue, the nav
+   * navy and the promo-band orange. These three are the identity and are
+   * never adjusted — the tokens below derive from them, and a derivation may
+   * step away from the literal value when a surface or a band demands it.
+   */
+  --brand: #1858a9;
+  --brand-deep: #022d63;
+  --brand-orange: #ef7e40;
+
   --bg: #ffffff;
   --fg: #16181d;
   --muted: #5f6672;
-  --line: #e3e6ea;
-  --accent: #2f6feb;
+  --line: #dde3ec;
+  /* Interactive text: 6.98:1 on white, so the brand blue is used as-is. */
+  --accent: var(--brand);
   /**
    * The fill for data marks — meter and bars. Deliberately its own token rather
    * than `--accent`, because the two have different jobs and different rules:
@@ -13,16 +24,19 @@
    * `--accent`'s dark step (L 0.713) is outside the dark band and would be
    * wrong here. Re-validate if you change either.
    */
-  --mark: #2f6feb;
+  --mark: var(--brand);
   /**
    * The second categorical hue: "moved recently". Progress and attention are
    * different variables, so they get different hues rather than two steps of
    * one — a lighter blue would read as "less done", which is not what it says.
-   * Validated as a pair with --mark on this surface: CVD ΔE 28.9 (protan),
-   * normal-vision 36.4, both inside the light band and ≥3:1. Re-validate the
+   *
+   * A step down from --brand-orange, not the literal value: CIB's promo orange
+   * is 2.72:1 on white and a data mark needs 3:1. This is the nearest hue-true
+   * step that clears it (3.1:1). Validated as a pair with --mark: CVD ΔE 28.0
+   * (protan), normal-vision 38.0, both inside the light band. Re-validate the
    * pair, not the value alone, if either changes.
    */
-  --live: #eb6834;
+  --live: #e57228;
   --ok-bg: #eef7ef;
   --ok-line: #b8dcc0;
   --warn-bg: #fdf5e6;
@@ -36,16 +50,20 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14161a;
+    /* A navy-tinted dark, so the brand still reads in the dark theme rather
+       than the app going neutral grey the moment the lights go out. */
+    --bg: #0f1722;
     --fg: #e9ecf1;
-    --muted: #9aa3b0;
-    --line: #2a2f37;
-    --accent: #6ea0ff;
-    /* In-band for dark (L 0.48–0.67); #6ea0ff is L 0.713 and fails. */
-    --mark: #5a8fe6;
-    /* Stepped for the dark surface, not the light value reused: CVD ΔE 26.6
-       (deutan), normal-vision 29.8, inside the dark band (L 0.48–0.67). */
-    --live: #d95926;
+    --muted: #9aa8bb;
+    --line: #22303f;
+    /* 7.1:1 on this surface. The brand blue itself is only 5.06 here, which
+       is fine for a mark but short of the 4.5 text bar with room to spare. */
+    --accent: #6ea6e8;
+    /* Both stepped for the dark surface, not the light values reused, and
+       validated as a pair against it: CVD ΔE 23.7 (protan), inside the dark
+       band (L 0.48–0.67), both ≥3:1. */
+    --mark: #4a8ad6;
+    --live: #dd6e2a;
     --ok-bg: #17251a;
     --ok-line: #2f5738;
     --warn-bg: #2a2114;
@@ -63,12 +81,29 @@ body {
   color: var(--fg);
 }
 
+/**
+ * The brand bar, following CIB's own navigation: navy ground, white wordmark,
+ * pale-blue links.
+ *
+ * The chrome-on-brand colours are set by REDEFINING the tokens inside the bar
+ * rather than by adding a selector per child. `.app__nav a`, `.app__role` and
+ * the sign-out `.btn--link` all already read --muted / --line / --accent, so
+ * they invert here for free — and anything added to the bar later inherits the
+ * treatment instead of arriving in dark-on-navy.
+ */
 .app__bar {
+  --fg: #ffffff;
+  --muted: #c8d8ee;
+  --accent: #ffffff;
+  --line: rgb(255 255 255 / 0.25);
+
   display: flex;
   align-items: center;
   gap: 1.5rem;
   padding: 0.85rem 1.25rem;
-  border-bottom: 1px solid var(--line);
+  background: var(--brand-deep);
+  color: var(--fg);
+  border-bottom: 3px solid var(--brand);
 }
 
 .app__brand {
