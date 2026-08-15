@@ -11,6 +11,11 @@ export interface TrackerData {
   openActionCounts: ReadonlyMap<string, number>
   /** featureId → feature name, for rendering an action's link column. */
   featureNames: ReadonlyMap<string, string>
+  /**
+   * Actor ids whose work this team owes, from the Lists tab. Every rollup that
+   * means "what we owe" filters through this — see isOwnedAction.
+   */
+  ownedActors: ReadonlySet<string>
 
   loading: boolean
   error: Error | null

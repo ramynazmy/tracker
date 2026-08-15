@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { entities, type EntityKey, type EntitySchema } from '../config/schema'
+import {
+  ARCHITECTURE_ACTOR,
+  entities,
+  type EntityKey,
+  type EntitySchema,
+} from '../config/schema'
 import {
   createEntity,
   softDeleteEntity,
   updateEntity,
 } from '../sheets/collection'
 import { loadAppData } from '../sheets/snapshot'
-import { parseLists, type Vocabularies } from '../sheets/lists'
+import { ownedActorIds, parseLists, type Vocabularies } from '../sheets/lists'
 import type { CellValue, TrackerRecord } from '../sheets/rows'
 import { countOpenActionsByFeature } from '../lib/rollups'
 import { TrackerDataContext, type TrackerData } from './TrackerDataContext'
@@ -187,9 +192,19 @@ export default function TrackerDataProvider({
   const features = state.records.feature
   const actions = state.records.action
 
+  // Which actors count as ours is data; ARCHITECTURE_ACTOR is only the
+  // fallback for when nothing in the sheet is marked.
+  const ownedActors = useMemo(
+    () => ownedActorIds(state.vocabularies, ARCHITECTURE_ACTOR),
+    [state.vocabularies],
+  )
+
   // Recomputed from the optimistic list, so closing an action updates its
   // feature's count immediately — no refetch, no formula.
-  const openActionCounts = useMemo(() => countOpenActionsByFeature(actions), [actions])
+  const openActionCounts = useMemo(
+    () => countOpenActionsByFeature(actions, ownedActors),
+    [actions, ownedActors],
+  )
 
   const featureNames = useMemo(() => {
     const names = new Map<string, string>()
@@ -210,6 +225,7 @@ export default function TrackerDataProvider({
     vocabularies: state.vocabularies,
     openActionCounts,
     featureNames,
+    ownedActors,
     loading: state.loading,
     error: state.error,
     loadedAt: state.loadedAt,

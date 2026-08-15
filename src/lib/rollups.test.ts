@@ -10,6 +10,9 @@ import {
 } from './rollups'
 import type { TrackerRecord } from '../sheets/rows'
 
+/** The default set: just the architecture team. */
+const OURS = new Set(['architecture'])
+
 let seq = 0
 function action(fields: Record<string, string>): TrackerRecord {
   seq += 1
@@ -58,19 +61,27 @@ describe('isOpenAction', () => {
 
 describe('isOwnedAction', () => {
   it('counts the architecture team as ours', () => {
-    expect(isOwnedAction(action({ actor: 'architecture' }))).toBe(true)
+    expect(isOwnedAction(action({ actor: 'architecture' }), OURS)).toBe(true)
   })
 
   it('counts anyone else as not ours', () => {
-    expect(isOwnedAction(action({ actor: 'delivery' }))).toBe(false)
-    expect(isOwnedAction(action({ actor: 'vendor' }))).toBe(false)
+    expect(isOwnedAction(action({ actor: 'delivery' }), OURS)).toBe(false)
+    expect(isOwnedAction(action({ actor: 'vendor' }), OURS)).toBe(false)
+  })
+
+  it('honours a set with more than one owned actor', () => {
+    // Splitting the architecture function must not need a deploy.
+    const split = new Set(['solution-architecture', 'enterprise-architecture'])
+    expect(isOwnedAction(action({ actor: 'solution-architecture' }), split)).toBe(true)
+    expect(isOwnedAction(action({ actor: 'enterprise-architecture' }), split)).toBe(true)
+    expect(isOwnedAction(action({ actor: 'architecture' }), split)).toBe(false)
   })
 
   it('counts a blank actor as ours', () => {
     // Every action predates this field. Treating blank as somebody else's
     // would silently zero every rollup on the board at once.
-    expect(isOwnedAction(action({ actor: '' }))).toBe(true)
-    expect(isOwnedAction(action({}))).toBe(true)
+    expect(isOwnedAction(action({ actor: '' }), OURS)).toBe(true)
+    expect(isOwnedAction(action({}), OURS)).toBe(true)
   })
 })
 
@@ -82,12 +93,12 @@ describe('countOpenActionsByFeature', () => {
       action({ featureId: 'f1', status: 'open', actor: 'architecture' }),
       action({ featureId: 'f1', status: 'open', actor: 'delivery' }),
       action({ featureId: 'f1', status: 'open', actor: 'vendor' }),
-    ])
+    ], OURS)
     expect(counts.get('f1')).toBe(1)
   })
 
   it('still counts pre-existing actions that have no actor', () => {
-    const counts = countOpenActionsByFeature([action({ featureId: 'f1', status: 'open' })])
+    const counts = countOpenActionsByFeature([action({ featureId: 'f1', status: 'open' })], OURS)
     expect(counts.get('f1')).toBe(1)
   })
 
@@ -97,19 +108,19 @@ describe('countOpenActionsByFeature', () => {
       action({ featureId: 'f1', status: 'in-progress' }),
       action({ featureId: 'f1', status: 'done' }),
       action({ featureId: 'f2', status: 'open' }),
-    ])
+    ], OURS)
     expect(counts.get('f1')).toBe(2)
     expect(counts.get('f2')).toBe(1)
   })
 
   it('omits a feature whose actions are all closed', () => {
-    const counts = countOpenActionsByFeature([action({ featureId: 'f1', status: 'done' })])
+    const counts = countOpenActionsByFeature([action({ featureId: 'f1', status: 'done' })], OURS)
     // Absent, not zero — the caller renders `?? 0`, so both read the same.
     expect(counts.get('f1')).toBeUndefined()
   })
 
   it('ignores an action with no feature', () => {
-    const counts = countOpenActionsByFeature([action({ featureId: '', status: 'open' })])
+    const counts = countOpenActionsByFeature([action({ featureId: '', status: 'open' })], OURS)
     expect(counts.size).toBe(0)
   })
 })

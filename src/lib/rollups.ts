@@ -10,23 +10,27 @@
  * these values out of `entity.fields` and therefore out of the write path.
  */
 
-import { ARCHITECTURE_ACTOR } from '../config/schema'
 import type { TrackerRecord } from '../sheets/rows'
 
 /**
- * Is this row work the architecture team owes?
+ * Is this row work the team owes?
  *
  * The Actions tab holds the whole timeline, including things other people do —
  * a delivery milestone, a vendor deliverable. Those are context, not workload.
  * Counting them would inflate every feature's open-action rollup and the
  * overdue figure into meaning nothing in particular.
  *
+ * `owned` comes from the Lists tab via `ownedActorIds`, so which actors count
+ * as ours is data, not code. It is a required argument rather than an optional
+ * one on purpose: a default would let a call site quietly skip it and still be
+ * right today, then be wrong the moment the set changes.
+ *
  * Blank counts as ours: the field was added after the fact, and treating a
  * blank as somebody else's would zero every existing rollup at once.
  */
-export function isOwnedAction(action: TrackerRecord): boolean {
+export function isOwnedAction(action: TrackerRecord, owned: ReadonlySet<string>): boolean {
   const actor = String(action.fields.actor ?? '').trim()
-  return actor === '' || actor === ARCHITECTURE_ACTOR
+  return actor === '' || owned.has(actor)
 }
 
 /**
@@ -58,10 +62,11 @@ export function isOpenAction(action: TrackerRecord): boolean {
  */
 export function countOpenActionsByFeature(
   actions: readonly TrackerRecord[],
+  owned: ReadonlySet<string>,
 ): Map<string, number> {
   const counts = new Map<string, number>()
   for (const action of actions) {
-    if (!isOpenAction(action) || !isOwnedAction(action)) continue
+    if (!isOpenAction(action) || !isOwnedAction(action, owned)) continue
     const featureId = String(action.fields.featureId ?? '')
     if (!featureId) continue
     counts.set(featureId, (counts.get(featureId) ?? 0) + 1)

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { isUnknownValue, labelFor, optionsFor, parseLists, vocabularyOf } from './lists'
+import {
+  isUnknownValue,
+  labelFor,
+  optionsFor,
+  ownedActorIds,
+  parseLists,
+  vocabularyOf,
+} from './lists'
 import type { Field } from '../config/schema'
 
 const HEADERS = ['kind', 'id', 'label', 'parent', 'active', 'order']
@@ -156,5 +163,56 @@ describe('optionsFor', () => {
 
   it('returns empty for a kind that has no rows yet', () => {
     expect(optionsFor(v, { key: 'p', label: 'P', type: 'reference', listKind: 'platform' })).toEqual([])
+  })
+})
+
+describe('ownedActorIds', () => {
+  const actorRows = (marks: Record<string, string>) => [
+    HEADERS,
+    ...Object.entries(marks).map(([id, parent], i) => [
+      'actor',
+      id,
+      id,
+      parent,
+      true,
+      i + 1,
+    ]),
+  ]
+
+  it('falls back to the given actor when nothing is marked', () => {
+    // The important case, and the current state of the sheet. An empty set
+    // would mean "nobody's work is ours" — every rollup would read zero, which
+    // looks like good news rather than a misconfiguration.
+    const v = parseLists(actorRows({ architecture: '', delivery: '', vendor: '' }))
+    expect([...ownedActorIds(v, 'architecture')]).toEqual(['architecture'])
+  })
+
+  it('falls back when there is no actor vocabulary at all', () => {
+    expect([...ownedActorIds(parseLists([]), 'architecture')]).toEqual(['architecture'])
+  })
+
+  it('uses the marked actors once any row carries the marker', () => {
+    const v = parseLists(
+      actorRows({ 'solution-architecture': 'ours', 'enterprise-architecture': 'ours', delivery: '' }),
+    )
+    expect(ownedActorIds(v, 'architecture')).toEqual(
+      new Set(['solution-architecture', 'enterprise-architecture']),
+    )
+  })
+
+  it('drops the fallback once the sheet says otherwise', () => {
+    // Marking a different actor is how you retire the default, so the fallback
+    // must not quietly persist alongside it.
+    const v = parseLists(actorRows({ architecture: '', 'solution-architecture': 'ours' }))
+    expect(ownedActorIds(v, 'architecture').has('architecture')).toBe(false)
+  })
+
+  it('ignores a retired actor even when marked', () => {
+    const rows = [
+      HEADERS,
+      ['actor', 'old-team', 'Old Team', 'ours', false, 1],
+      ['actor', 'new-team', 'New Team', 'ours', true, 2],
+    ]
+    expect([...ownedActorIds(parseLists(rows), 'architecture')]).toEqual(['new-team'])
   })
 })

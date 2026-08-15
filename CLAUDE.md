@@ -24,6 +24,17 @@ milestone makes them answer nothing in particular. A blank actor counts as
 ours: the field was added after the fact, and defaulting blanks out would zero
 every rollup at once.
 
+**Which actors count as ours is data too.** `ownedActorIds` reads `actor` rows
+in `Lists` whose `parent` is `ours`, so splitting the architecture function is a
+sheet edit rather than a deploy. `parent` normally scopes a value to another
+list; on `actor` rows nothing scopes them, so the column is reused — that is the
+one place it means something else. When **no** row is marked it falls back to
+`ARCHITECTURE_ACTOR`, and that fallback is load-bearing: an empty set would mean
+"nobody's work is ours", every count would read zero, and zero outstanding work
+looks like good news rather than a broken config. `isOwnedAction` takes the set
+as a **required** argument for the same reason — an optional one would let a new
+call site be accidentally right today and wrong later.
+
 ## Commands
 
 ```bash

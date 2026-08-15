@@ -16,14 +16,15 @@ import type { TrackerRecord } from '../sheets/rows'
  * entity tab would be destroyed by the next row write.
  */
 export default function Dashboard() {
-  const { features, actions, vocabularies, loading, error, loadedAt } = useTracker()
+  const { features, actions, vocabularies, ownedActors, loading, error, loadedAt } =
+    useTracker()
 
   const stats = useMemo(() => {
     const status = countBy(features, 'status')
     const done = status.get('done') ?? 0
     // Ours only: the headline "open" and "overdue" figures are a statement
     // about this team's workload, not about everything on the timeline.
-    const open = actions.filter((a) => isOpenAction(a) && isOwnedAction(a))
+    const open = actions.filter((a) => isOpenAction(a) && isOwnedAction(a, ownedActors))
     const today = new Date()
 
     return {
@@ -36,7 +37,7 @@ export default function Dashboard() {
       overdue: open.filter((a) => daysOverdue(a, today) !== null).length,
       asdRequired: features.filter((f) => String(f.fields.asdRequired) === 'yes').length,
     }
-  }, [features, actions])
+  }, [features, actions, ownedActors])
 
   if (error) {
     return (

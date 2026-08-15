@@ -21,8 +21,17 @@ type ActorFilter = string
 
 export default function Actions() {
   const { state } = useAuth()
-  const { features, actions, vocabularies, featureNames, loading, error, loadedAt, refresh } =
-    useTracker()
+  const {
+    features,
+    actions,
+    vocabularies,
+    featureNames,
+    ownedActors,
+    loading,
+    error,
+    loadedAt,
+    refresh,
+  } = useTracker()
   const editor = useEntityEditor(ACTION)
   // Open-first by default: this page is the workbook's "Open Tasks" view, and
   // the whole point of that tab was what still needs doing.
@@ -36,10 +45,10 @@ export default function Actions() {
 
   const visible = useMemo(() => {
     let rows = filter === 'open' ? actions.filter(isOpenAction) : actions
-    if (actor === 'ours') rows = rows.filter(isOwnedAction)
+    if (actor === 'ours') rows = rows.filter((a) => isOwnedAction(a, ownedActors))
     else if (actor) rows = rows.filter((a) => String(a.fields.actor ?? '') === actor)
     return rows
-  }, [actions, filter, actor])
+  }, [actions, filter, actor, ownedActors])
 
   const actorOptions = vocabularyOf(vocabularies, 'actor').active
 

@@ -33,6 +33,13 @@ Filter the Actions page by actor to see everything, or just what is ours.
 
 An action with no actor set counts as ours.
 
+**Adding an actor** is a row in `Lists` — no code, no deploy. New actors are treated as *not* ours,
+so they join the timeline without inflating the team's open counts.
+
+**If a new actor should count as ours** — say the architecture function splits into solution and
+enterprise — put `ours` in that row's `parent` column. Mark every actor that qualifies: once any row
+carries the marker, only the marked rows count. Marking nothing keeps the default (Architecture).
+
 Three roles — `admin`, `editor`, `viewer` — with an admin screen for managing people, CSV export,
 and an audit log of every write.
 
