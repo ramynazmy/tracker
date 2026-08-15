@@ -859,3 +859,23 @@ a.stat:hover {
 .tl__meta a {
   color: inherit;
 }
+
+/* Releases: a meter per row, with the value in text beside it so the bar is
+   never the only way to read the number. */
+.releases__progress {
+  min-width: 9rem;
+}
+
+.meter--inline {
+  display: inline-block;
+  width: 5.5rem;
+  height: 8px;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+
+.releases__percent {
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
