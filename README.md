@@ -19,7 +19,8 @@ Sign in with Google, then track two things:
   architecture work — solution design, review, impact assessment…) and an **actor** (who does it).
 
 Open a feature to see its actions and raise new ones. The Dashboard leads with percent complete and
-the counts; Releases shows how far each channel's releases have got; the Actions page lists
+the counts and a card per channel — its releases, and which features have moved in the last two
+weeks; Releases shows how far each channel's releases have got; the Actions page lists
 everything still open, with days overdue; the Timeline shows what has happened and what is coming,
 in date order.
 

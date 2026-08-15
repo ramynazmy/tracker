@@ -4,6 +4,8 @@ import { type ListKind } from '../config/schema'
 import { useTracker } from '../data/TrackerDataContext'
 import LoadError from '../components/LoadError'
 import { countBy, daysOverdue, isOpenAction, isOwnedAction } from '../lib/rollups'
+import { ACTIVE_WINDOW_DAYS, recentActivity, type FeatureActivity } from '../lib/activity'
+import { groupByRelease, sortGroups, type ReleaseGroup } from '../lib/releases'
 import { labelFor, vocabularyOf, type Vocabularies } from '../sheets/lists'
 import { NOT_SET } from '../lib/filters'
 import type { TrackerRecord } from '../sheets/rows'
@@ -17,8 +19,18 @@ import type { TrackerRecord } from '../sheets/rows'
  * entity tab would be destroyed by the next row write.
  */
 export default function Dashboard() {
-  const { features, actions, vocabularies, ownedActors, loading, error, loadedAt } =
-    useTracker()
+  const {
+    features,
+    actions,
+    vocabularies,
+    ownedActors,
+    featureNames,
+    loading,
+    error,
+    loadedAt,
+  } = useTracker()
+
+  const today = new Date().toISOString().slice(0, 10)
 
   const stats = useMemo(() => {
     const status = countBy(features, 'status')
@@ -39,6 +51,33 @@ export default function Dashboard() {
       asdRequired: features.filter((f) => String(f.fields.asdRequired) === 'yes').length,
     }
   }, [features, actions, ownedActors])
+
+  const channels = useMemo(() => {
+    const groups = sortGroups(
+      groupByRelease(features, actions, ownedActors, new Date()),
+      vocabularyOf(vocabularies, 'channel').active.map((i) => i.id),
+      vocabularyOf(vocabularies, 'release').active.map((i) => i.id),
+    )
+
+    const activity = recentActivity(actions, today)
+    const featureChannel = new Map(
+      features.map((f) => [f.id, String(f.fields.channel ?? '')]),
+    )
+
+    const byChannel = new Map<string, { releases: ReleaseGroup[]; active: FeatureActivity[] }>()
+    for (const group of groups) {
+      const entry = byChannel.get(group.channel) ?? { releases: [], active: [] }
+      entry.releases.push(group)
+      byChannel.set(group.channel, entry)
+    }
+    for (const item of activity) {
+      const channel = featureChannel.get(item.featureId)
+      if (channel === undefined) continue
+      byChannel.get(channel)?.active.push(item)
+    }
+
+    return [...byChannel.entries()].map(([id, value]) => ({ id, ...value }))
+  }, [features, actions, ownedActors, vocabularies, today])
 
   if (error) {
     return (
@@ -81,6 +120,20 @@ export default function Dashboard() {
         <Stat label="Overdue" value={stats.overdue} to="/actions" warn={stats.overdue > 0} />
       </div>
 
+      <h2 className="section-title">Channels</h2>
+      <div className="channels">
+        {channels.map((channel) => (
+          <ChannelCard
+            key={channel.id || '(none)'}
+            channelId={channel.id}
+            releases={channel.releases}
+            active={channel.active}
+            vocabularies={vocabularies}
+            featureNames={featureNames}
+          />
+        ))}
+      </div>
+
       <div className="panels">
         <Breakdown
           title="By status"
@@ -88,14 +141,6 @@ export default function Dashboard() {
           records={features}
           field="status"
           kind="featureStatus"
-          vocabularies={vocabularies}
-        />
-        <Breakdown
-          title="By channel"
-          to="/features"
-          records={features}
-          field="channel"
-          kind="channel"
           vocabularies={vocabularies}
         />
         <Breakdown
@@ -125,6 +170,100 @@ export default function Dashboard() {
           note="Features where an ASD is required"
         />
       </div>
+    </section>
+  )
+}
+
+/**
+ * One channel: how its releases stand, and what has moved lately.
+ *
+ * The releases answer "where is the plan", the activity list answers "where is
+ * the attention" — a release can be 0% and busy, or 80% and untouched for a
+ * month, and only showing both distinguishes them.
+ */
+function ChannelCard({
+  channelId,
+  releases,
+  active,
+  vocabularies,
+  featureNames,
+}: {
+  channelId: string
+  releases: ReleaseGroup[]
+  active: FeatureActivity[]
+  vocabularies: Vocabularies
+  featureNames: ReadonlyMap<string, string>
+}) {
+  const total = releases.reduce((n, r) => n + r.total, 0)
+  const done = releases.reduce((n, r) => n + r.done, 0)
+  const percent = total === 0 ? 0 : Math.round((done / total) * 100)
+  const channelLabel = channelId === '' ? 'No channel' : labelFor(vocabularies, 'channel', channelId)
+  const channelHref = `/features?channel=${encodeURIComponent(channelId || NOT_SET)}`
+
+  return (
+    <section className="channel">
+      <header className="channel__head">
+        <h3 className="channel__name">
+          <Link to={channelHref}>{channelLabel}</Link>
+        </h3>
+        <span className="muted">
+          {total} {total === 1 ? 'feature' : 'features'} · {percent}%
+        </span>
+      </header>
+
+      <ul className="channel__releases">
+        {releases.map((release) => (
+          <li key={release.release || '(none)'} className="channel__release">
+            <Link
+              className="channel__release-name"
+              to={
+                `/features?channel=${encodeURIComponent(release.channel || NOT_SET)}` +
+                `&release=${encodeURIComponent(release.release || NOT_SET)}`
+              }
+            >
+              {release.release === ''
+                ? 'No release'
+                : labelFor(vocabularies, 'release', release.release)}
+            </Link>
+            <div className="meter meter--inline">
+              <div className="meter__fill" style={{ width: `${release.percent}%` }} />
+            </div>
+            <span className="channel__release-stat">
+              {release.done}/{release.total}
+            </span>
+            <span className="channel__release-stat">
+              {release.openActions > 0 ? `${release.openActions} open` : ''}
+              {release.overdue > 0 && <span className="tl__flag">{release.overdue} overdue</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <h4 className="channel__subhead">
+        Active in the last {ACTIVE_WINDOW_DAYS} days
+        <span className="muted"> · {active.length}</span>
+      </h4>
+      {active.length === 0 ? (
+        <p className="muted channel__quiet">Nothing has moved.</p>
+      ) : (
+        <ul className="channel__active">
+          {active.slice(0, 6).map((item) => (
+            <li key={item.featureId}>
+              <Link to={`/features/${encodeURIComponent(item.featureId)}`}>
+                {featureNames.get(item.featureId) ?? 'Unknown feature'}
+              </Link>
+              <span className="muted">
+                {' · '}
+                {item.latest.kind === 'raised' ? 'raised' : 'due'} {item.latest.date}
+                {item.count > 1 && ` · ${item.count} moments`}
+              </span>
+            </li>
+          ))}
+          {active.length > 6 && (
+            <li className="muted">and {active.length - 6} more</li>
+          )}
+        </ul>
+      )}
     </section>
   )
 }
