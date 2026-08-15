@@ -1062,23 +1062,45 @@ a.stat:hover {
   --rel-gap: 0.45rem;
   --rel-pad: 0.35rem;
 
-  padding: 1rem 1.15rem 1.15rem;
+  --channel-pad: 1.15rem;
+
+  padding: 0 var(--channel-pad) 1.15rem;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-top: 3px solid var(--brand);
   border-radius: 10px;
+  /* The header is full-bleed and square; this is what clips it to the card's
+     radius instead of letting its corners poke past the border. */
+  overflow: hidden;
 }
 
+/**
+ * The blue header bar.
+ *
+ * It bleeds past the card's padding with a negative margin, then adds that
+ * padding back inside — plus --rel-pad, so the channel name still sits over
+ * the chevron column and the total still sits over the flags' right edge. The
+ * two are one measurement apart; changing --channel-pad moves both together.
+ *
+ * Like the app bar, it redefines the tokens its children read rather than
+ * restating a colour per element: --muted is what the total wears, --accent is
+ * the name's hover, and both would be unreadable at their page values here.
+ */
 .channel__head {
+  --muted: rgb(255 255 255 / 0.82);
+  --accent: #ffffff;
+
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
-  /* The release rows are inset by this much so their hover state has room;
-     matching it here puts the channel total on the flags column's right edge
-     and the channel name on the chevron's left edge. */
-  padding: 0 var(--rel-pad);
-  margin-bottom: 0.85rem;
+  margin: 0 calc(var(--channel-pad) * -1) 0.85rem;
+  padding: 0.6rem calc(var(--channel-pad) + var(--rel-pad));
+  background: var(--brand);
+  color: #ffffff;
+}
+
+.channel__head .channel__name {
+  color: #ffffff;
 }
 
 .channel__name {
