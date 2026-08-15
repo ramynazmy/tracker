@@ -158,7 +158,7 @@ def cell(grid, row, col):
 # --------------------------------------------------------------------------
 
 def slug(value):
-    """'Platform One' → 'dxp-crx-decommission'."""
+    """'Platform One – Example (Retired)' → 'platform-one-example-retired'."""
     text = value.strip().lower()
     text = text.replace("–", "-").replace("—", "-")
     text = re.sub(r"[^a-z0-9]+", "-", text)
