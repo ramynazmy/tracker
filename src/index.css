@@ -272,6 +272,15 @@ code {
   outline-offset: 1px;
 }
 
+/* A select sitting in a button row — sized to its content, not the 22rem the
+   search box wants. */
+.input--inline {
+  flex: 0 0 auto;
+  max-width: none;
+  width: auto;
+  padding: 0.5rem 0.6rem;
+}
+
 .table-scroll {
   overflow-x: auto;
 }

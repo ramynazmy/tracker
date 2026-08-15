@@ -43,6 +43,8 @@ var FEATURES_HEADERS = HOUSEKEEPING.concat([
 var ACTIONS_HEADERS = HOUSEKEEPING.concat([
   'featureId',
   'name',
+  'type',
+  'actor',
   'owner',
   'status',
   'raisedOn',
@@ -71,6 +73,8 @@ var VALIDATED_COLUMNS = {
     owner: 'owner',
   },
   Actions: {
+    type: 'actionType',
+    actor: 'actor',
     owner: 'owner',
     status: 'actionStatus',
   },

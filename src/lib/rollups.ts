@@ -10,7 +10,24 @@
  * these values out of `entity.fields` and therefore out of the write path.
  */
 
+import { ARCHITECTURE_ACTOR } from '../config/schema'
 import type { TrackerRecord } from '../sheets/rows'
+
+/**
+ * Is this row work the architecture team owes?
+ *
+ * The Actions tab holds the whole timeline, including things other people do —
+ * a delivery milestone, a vendor deliverable. Those are context, not workload.
+ * Counting them would inflate every feature's open-action rollup and the
+ * overdue figure into meaning nothing in particular.
+ *
+ * Blank counts as ours: the field was added after the fact, and treating a
+ * blank as somebody else's would zero every existing rollup at once.
+ */
+export function isOwnedAction(action: TrackerRecord): boolean {
+  const actor = String(action.fields.actor ?? '').trim()
+  return actor === '' || actor === ARCHITECTURE_ACTOR
+}
 
 /**
  * A status meaning the action needs no more work.
@@ -32,13 +49,19 @@ export function isOpenAction(action: TrackerRecord): boolean {
   return !CLOSED.has(statusOf(action))
 }
 
-/** featureId → number of open actions. Features with none are absent. */
+/**
+ * featureId → number of open actions the architecture team owes.
+ *
+ * Deliberately excludes rows performed by anyone else. This column answers
+ * "how much is outstanding on us for this feature", and a delivery milestone
+ * sitting in the same tab is not an answer to that question.
+ */
 export function countOpenActionsByFeature(
   actions: readonly TrackerRecord[],
 ): Map<string, number> {
   const counts = new Map<string, number>()
   for (const action of actions) {
-    if (!isOpenAction(action)) continue
+    if (!isOpenAction(action) || !isOwnedAction(action)) continue
     const featureId = String(action.fields.featureId ?? '')
     if (!featureId) continue
     counts.set(featureId, (counts.get(featureId) ?? 0) + 1)

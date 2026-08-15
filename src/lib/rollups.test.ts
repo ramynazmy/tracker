@@ -5,6 +5,7 @@ import {
   countOpenActionsByFeature,
   daysOverdue,
   isOpenAction,
+  isOwnedAction,
   orphanActions,
 } from './rollups'
 import type { TrackerRecord } from '../sheets/rows'
@@ -55,7 +56,41 @@ describe('isOpenAction', () => {
   })
 })
 
+describe('isOwnedAction', () => {
+  it('counts the architecture team as ours', () => {
+    expect(isOwnedAction(action({ actor: 'architecture' }))).toBe(true)
+  })
+
+  it('counts anyone else as not ours', () => {
+    expect(isOwnedAction(action({ actor: 'delivery' }))).toBe(false)
+    expect(isOwnedAction(action({ actor: 'vendor' }))).toBe(false)
+  })
+
+  it('counts a blank actor as ours', () => {
+    // Every action predates this field. Treating blank as somebody else's
+    // would silently zero every rollup on the board at once.
+    expect(isOwnedAction(action({ actor: '' }))).toBe(true)
+    expect(isOwnedAction(action({}))).toBe(true)
+  })
+})
+
 describe('countOpenActionsByFeature', () => {
+  it('excludes open work someone else does', () => {
+    // The whole risk of holding the timeline in one tab: a delivery milestone
+    // must not inflate what this team is shown as owing.
+    const counts = countOpenActionsByFeature([
+      action({ featureId: 'f1', status: 'open', actor: 'architecture' }),
+      action({ featureId: 'f1', status: 'open', actor: 'delivery' }),
+      action({ featureId: 'f1', status: 'open', actor: 'vendor' }),
+    ])
+    expect(counts.get('f1')).toBe(1)
+  })
+
+  it('still counts pre-existing actions that have no actor', () => {
+    const counts = countOpenActionsByFeature([action({ featureId: 'f1', status: 'open' })])
+    expect(counts.get('f1')).toBe(1)
+  })
+
   it('counts only open actions, grouped by feature', () => {
     const counts = countOpenActionsByFeature([
       action({ featureId: 'f1', status: 'open' }),

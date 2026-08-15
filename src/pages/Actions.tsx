@@ -5,16 +5,19 @@ import EntityForm from '../components/EntityForm'
 import LoadError from '../components/LoadError'
 import Toast from '../components/Toast'
 import { entities } from '../config/schema'
+import { vocabularyOf } from '../sheets/lists'
 import { useTracker } from '../data/TrackerDataContext'
 import { useEntityEditor } from '../hooks/useEntityEditor'
 import { canWriteRecords } from '../lib/permissions'
 import { downloadCsv } from '../lib/csv'
-import { daysOverdue, isOpenAction, orphanActions } from '../lib/rollups'
+import { daysOverdue, isOpenAction, isOwnedAction, orphanActions } from '../lib/rollups'
 
 const FEATURE = entities.feature
 const ACTION = entities.action
 
 type Filter = 'open' | 'all'
+/** '' = every actor. Otherwise a Lists actor id, or 'ours' for the team. */
+type ActorFilter = string
 
 export default function Actions() {
   const { state } = useAuth()
@@ -24,16 +27,21 @@ export default function Actions() {
   // Open-first by default: this page is the workbook's "Open Tasks" view, and
   // the whole point of that tab was what still needs doing.
   const [filter, setFilter] = useState<Filter>('open')
+  const [actor, setActor] = useState<ActorFilter>('')
 
   const orphans = useMemo(
     () => orphanActions(actions, new Set(features.map((f) => f.id))),
     [actions, features],
   )
 
-  const visible = useMemo(
-    () => (filter === 'open' ? actions.filter(isOpenAction) : actions),
-    [actions, filter],
-  )
+  const visible = useMemo(() => {
+    let rows = filter === 'open' ? actions.filter(isOpenAction) : actions
+    if (actor === 'ours') rows = rows.filter(isOwnedAction)
+    else if (actor) rows = rows.filter((a) => String(a.fields.actor ?? '') === actor)
+    return rows
+  }, [actions, filter, actor])
+
+  const actorOptions = vocabularyOf(vocabularies, 'actor').active
 
   if (state.status !== 'ready') return null
   const canWrite = canWriteRecords(state.user.role)
@@ -50,6 +58,20 @@ export default function Actions() {
           </p>
         </div>
         <div className="row row--tight">
+          <select
+            className="input input--inline"
+            value={actor}
+            onChange={(event) => setActor(event.target.value)}
+            aria-label="Filter by who does it"
+          >
+            <option value="">Everyone</option>
+            <option value="ours">Ours only</option>
+            {actorOptions.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
           <button
             className="btn"
             onClick={() => setFilter((f) => (f === 'open' ? 'all' : 'open'))}

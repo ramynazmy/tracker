@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { type ListKind } from '../config/schema'
 import { useTracker } from '../data/TrackerDataContext'
 import LoadError from '../components/LoadError'
-import { countBy, daysOverdue, isOpenAction } from '../lib/rollups'
+import { countBy, daysOverdue, isOpenAction, isOwnedAction } from '../lib/rollups'
 import { labelFor, vocabularyOf, type Vocabularies } from '../sheets/lists'
 import type { TrackerRecord } from '../sheets/rows'
 
@@ -21,7 +21,9 @@ export default function Dashboard() {
   const stats = useMemo(() => {
     const status = countBy(features, 'status')
     const done = status.get('done') ?? 0
-    const open = actions.filter(isOpenAction)
+    // Ours only: the headline "open" and "overdue" figures are a statement
+    // about this team's workload, not about everything on the timeline.
+    const open = actions.filter((a) => isOpenAction(a) && isOwnedAction(a))
     const today = new Date()
 
     return {
@@ -73,7 +75,7 @@ export default function Dashboard() {
         <Stat label="In progress" value={stats.inProgress} />
         <Stat label="Not started" value={stats.notStarted} />
         <Stat label="ASD required" value={stats.asdRequired} />
-        <Stat label="Open actions" value={stats.openActions} to="/actions" />
+        <Stat label="Open on us" value={stats.openActions} to="/actions" />
         <Stat label="Overdue" value={stats.overdue} to="/actions" warn={stats.overdue > 0} />
       </div>
 
@@ -98,6 +100,14 @@ export default function Dashboard() {
           field="owner"
           kind="owner"
           vocabularies={vocabularies}
+        />
+        <Breakdown
+          title="Actions by type"
+          records={actions}
+          field="type"
+          kind="actionType"
+          vocabularies={vocabularies}
+          note="What kind of architecture work is being asked of us"
         />
         <Breakdown
           title="ASD status"

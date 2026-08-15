@@ -55,6 +55,22 @@ export type ListKind =
   | 'asdStatus'
   | 'owner'
   | 'actionStatus'
+  /** What kind of architecture work an action is — TOGAF service activities. */
+  | 'actionType'
+  /** Who performs it. Not every row on the timeline is ours to do. */
+  | 'actor'
+
+/**
+ * The actor whose work the architecture team owes.
+ *
+ * Rows with any other actor are timeline context — a delivery milestone, a
+ * vendor deliverable — and must NOT count toward a feature's open-action
+ * rollup or the overdue figure, or those numbers stop meaning "what we owe".
+ *
+ * A blank actor counts as ours: every action predates this field, and
+ * defaulting them out would silently zero every rollup on the board.
+ */
+export const ARCHITECTURE_ACTOR = 'architecture'
 
 export type EntityKey = 'feature' | 'action'
 
@@ -112,6 +128,10 @@ const featureFields: readonly Field[] = [
 const actionFields: readonly Field[] = [
   { key: 'featureId', label: 'Feature', type: 'link', refEntity: 'feature', required: true },
   { key: 'name', label: 'Action', type: 'text', required: true, maxLength: 500 },
+  { key: 'type', label: 'Type', type: 'reference', listKind: 'actionType' },
+  // Not required: a row with no actor is ours, which keeps every pre-existing
+  // action counting toward the rollups it already counted toward.
+  { key: 'actor', label: 'Done by', type: 'reference', listKind: 'actor' },
   { key: 'owner', label: 'Owner', type: 'reference', listKind: 'owner' },
   { key: 'status', label: 'Status', type: 'reference', listKind: 'actionStatus', required: true },
   { key: 'raisedOn', label: 'Raised On', type: 'date' },
@@ -136,7 +156,7 @@ export const entities: Record<EntityKey, EntitySchema> = {
     labelPlural: 'Actions',
     titleField: 'name',
     fields: actionFields,
-    listColumns: ['name', 'featureId', 'owner', 'status', 'dueDate'],
+    listColumns: ['name', 'featureId', 'type', 'actor', 'status', 'dueDate'],
   },
 }
 
