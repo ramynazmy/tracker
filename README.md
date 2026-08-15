@@ -173,6 +173,11 @@ adding a release stays a data edit rather than an admin task.
 
 ## Conventions
 
+- **CIB colours, light only.** Navy chrome, brand blue for progress and for
+  anything you can click, orange for one thing and one thing only — work that
+  has moved in the last two weeks. White is a surface: cards sit on a soft blue
+  ground rather than the page being white throughout. There is no dark theme,
+  by design, because the bank's own site has none.
 - **`HashRouter`** — URLs contain `#` (`/tracker/#/features/<uuid>`). GitHub Pages has no rewrite rules,
   so `BrowserRouter` would 404 on a hard refresh of a deep link.
 - **Filters live in the URL.** `#/features?channel=retail-banking&status=done` is a shareable

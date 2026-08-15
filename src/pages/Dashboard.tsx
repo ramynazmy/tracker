@@ -78,6 +78,13 @@ export default function Dashboard() {
     return [...byChannel.entries()].map(([id, value]) => ({ id, ...value }))
   }, [features, actions, ownedActors, vocabularies, today])
 
+  // The same number the cards add up to, so the hero and the cards can never
+  // disagree — it is derived from the same call, not counted a second way.
+  const activeTotal = useMemo(
+    () => channels.reduce((n, c) => n + c.active.length, 0),
+    [channels],
+  )
+
   if (error) {
     return (
       <section>
@@ -108,6 +115,12 @@ export default function Dashboard() {
         <div className="meter" role="img" aria-label={`${stats.percent} percent complete`}>
           <div className="meter__fill" style={{ width: `${stats.percent}%` }} />
         </div>
+        {activeTotal > 0 && (
+          <p className="hero__live">
+            {activeTotal} {activeTotal === 1 ? 'feature has' : 'features have'} moved in the last{' '}
+            {ACTIVE_WINDOW_DAYS} days
+          </p>
+        )}
       </div>
 
       <div className="kpis">

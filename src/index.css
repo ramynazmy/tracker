@@ -9,10 +9,23 @@
   --brand-deep: #022d63;
   --brand-orange: #ef7e40;
 
+  /**
+   * Three surfaces, not one. `--ground` is the page, `--surface` is the white
+   * a card is made of, `--bg` stays white because it is what the tint
+   * color-mixes resolve against — every tinted fill sits ON a card, so mixing
+   * toward the ground would leave them a shade off.
+   */
+  --ground: #eef3fa;
+  --surface: #ffffff;
   --bg: #ffffff;
-  --fg: #16181d;
-  --muted: #5f6672;
-  --line: #dde3ec;
+  /* Ink with a hint of the navy in it, so even the body text belongs to the
+     palette. 14.9:1 on white. */
+  --fg: #142338;
+  --muted: #5b6b80;
+  --line: #dbe4f0;
+  /* Soft blue fills: table headers, chips, the done state. */
+  --tint: color-mix(in srgb, var(--brand) 7%, #fff);
+  --tint-line: color-mix(in srgb, var(--brand) 22%, #fff);
   /* Interactive text: 6.98:1 on white, so the brand blue is used as-is. */
   --accent: var(--brand);
   /**
@@ -72,8 +85,18 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--ground);
   color: var(--fg);
+}
+
+/* Headings wear the navy rather than plain ink — it is 13.5:1 on white, so it
+   reads as ink that happens to belong to the brand, not as a coloured label. */
+h1,
+h2,
+.stat__value,
+.panel__title,
+.channel__name {
+  color: var(--brand-deep);
 }
 
 /**
@@ -139,6 +162,7 @@ h1 {
 .card {
   margin-top: 1.5rem;
   padding: 1rem 1.15rem;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
 }
@@ -325,6 +349,9 @@ code {
 
 .table-scroll {
   overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
 }
 
 .records {
@@ -342,7 +369,13 @@ code {
 
 .records thead th {
   padding: 0;
-  border-bottom: 1px solid var(--line);
+  background: var(--tint);
+  border-bottom: 1px solid var(--tint-line);
+}
+
+/* The table already has the card's border; the last row's own would double it. */
+.records tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .th-sort {
@@ -375,11 +408,16 @@ code {
   white-space: nowrap;
 }
 
+/* Vocabulary values, tinted blue: they are the same kind of thing everywhere
+   they appear, so they read as one family across the tables and the detail
+   page. The unknown and self variants override the tint deliberately. */
 .chip {
   display: inline-block;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  border: 1px solid var(--line);
+  background: var(--tint);
+  border: 1px solid var(--tint-line);
+  color: var(--brand-deep);
   font-size: 0.82em;
 }
 
@@ -625,8 +663,50 @@ textarea.input {
   transition: opacity 120ms ease-out;
 }
 
+/**
+ * The blue band, straight off the bank's own hero.
+ *
+ * White on navy→blue is 8.5:1 at the light end, so the figure keeps its
+ * contrast; the meter inverts to white on a translucent white track rather
+ * than staying --mark, because a blue mark on a blue band would be the one
+ * place in the app where the data is harder to see than the chrome.
+ */
 .hero {
   margin: 1.5rem 0 2rem;
+  padding: 1.4rem 1.5rem 1.6rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--brand-deep) 0%, var(--brand) 100%);
+  color: #fff;
+}
+
+.hero__value,
+.hero .hero__label {
+  color: #fff;
+}
+
+.hero .hero__label {
+  opacity: 0.88;
+}
+
+.hero .meter {
+  background: rgb(255 255 255 / 0.28);
+}
+
+.hero .meter__fill {
+  background: #fff;
+}
+
+/* The one place orange appears outside a channel card, and it means the same
+   thing there as it does inside one. */
+.hero__live {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: var(--brand-orange);
+  color: #16181d;
+  font-size: 0.85rem;
+  font-weight: 550;
 }
 
 .hero__value {
@@ -687,7 +767,10 @@ textarea.input {
   flex-direction: column;
   gap: 0.15rem;
   padding: 0.85rem 1rem;
+  background: var(--surface);
   border: 1px solid var(--line);
+  /* The brand edge on the KPI row: colour on the tile, not on the number. */
+  border-top: 3px solid var(--brand);
   border-radius: 10px;
   text-decoration: none;
   color: inherit;
@@ -695,6 +778,8 @@ textarea.input {
 
 a.stat:hover {
   border-color: var(--accent);
+  border-top-color: var(--brand);
+  background: var(--tint);
 }
 
 .stat--warn {
@@ -716,7 +801,14 @@ a.stat:hover {
 .panels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-  gap: 1.5rem 2.5rem;
+  gap: 1rem;
+}
+
+.panel {
+  padding: 1rem 1.15rem 1.15rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
 }
 
 .panel__title {
@@ -947,7 +1039,7 @@ a.stat:hover {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--muted);
+  color: var(--brand);
   margin: 0 0 0.75rem;
 }
 
@@ -971,7 +1063,9 @@ a.stat:hover {
   --rel-pad: 0.35rem;
 
   padding: 1rem 1.15rem 1.15rem;
+  background: var(--surface);
   border: 1px solid var(--line);
+  border-top: 3px solid var(--brand);
   border-radius: 10px;
 }
 
@@ -1204,6 +1298,15 @@ a.stat:hover {
   height: 8px;
   border-radius: 50%;
   border: 1.5px solid var(--muted);
+}
+
+/* Done gets the blue tint as well as the filled dot — so a release that is
+   mostly finished reads as blue at a glance, and one that is mostly ahead of
+   itself reads as outlines. The --live rule below wins on a feature that is
+   both done and recently touched: what moved is the more perishable fact. */
+.feat[data-state='done'] {
+  background: var(--tint);
+  border-color: var(--tint-line);
 }
 
 .feat[data-state='done'] .feat__dot {
