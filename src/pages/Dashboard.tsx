@@ -5,6 +5,7 @@ import { useTracker } from '../data/TrackerDataContext'
 import LoadError from '../components/LoadError'
 import { countBy, daysOverdue, isOpenAction, isOwnedAction } from '../lib/rollups'
 import { labelFor, vocabularyOf, type Vocabularies } from '../sheets/lists'
+import { NOT_SET } from '../lib/filters'
 import type { TrackerRecord } from '../sheets/rows'
 
 /**
@@ -83,6 +84,7 @@ export default function Dashboard() {
       <div className="panels">
         <Breakdown
           title="By status"
+          to="/features"
           records={features}
           field="status"
           kind="featureStatus"
@@ -90,6 +92,7 @@ export default function Dashboard() {
         />
         <Breakdown
           title="By channel"
+          to="/features"
           records={features}
           field="channel"
           kind="channel"
@@ -97,6 +100,7 @@ export default function Dashboard() {
         />
         <Breakdown
           title="By owner"
+          to="/features"
           records={features}
           field="owner"
           kind="owner"
@@ -104,6 +108,7 @@ export default function Dashboard() {
         />
         <Breakdown
           title="Actions by type"
+          to="/actions"
           records={actions}
           field="type"
           kind="actionType"
@@ -112,6 +117,7 @@ export default function Dashboard() {
         />
         <Breakdown
           title="ASD status"
+          to="/features"
           records={features.filter((f) => String(f.fields.asdRequired) === 'yes')}
           field="asdStatus"
           kind="asdStatus"
@@ -166,6 +172,7 @@ function Breakdown({
   kind,
   vocabularies,
   note,
+  to,
 }: {
   title: string
   records: TrackerRecord[]
@@ -173,6 +180,8 @@ function Breakdown({
   kind: ListKind
   vocabularies: Vocabularies
   note?: string
+  /** Page the bars link into, filtered by this field. */
+  to: string
 }) {
   const rows = useMemo(() => {
     const counts = countBy(records, field)
@@ -208,7 +217,12 @@ function Breakdown({
         <dl className="bars">
           {rows.map((row) => (
             <div key={row.id || '(blank)'} className="bar">
-              <dt className="bar__label">{row.label}</dt>
+              {/* A number on a dashboard should be a way in, not a dead end. */}
+              <dt className="bar__label">
+                <Link to={`${to}?${field}=${encodeURIComponent(row.id || NOT_SET)}`}>
+                  {row.label}
+                </Link>
+              </dt>
               <div className="bar__track">
                 {/* Bars grow from one baseline and are scaled to the largest
                     value in this panel, so the comparison is within-dimension. */}

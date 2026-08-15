@@ -1,5 +1,6 @@
 import { useAuth } from '../auth/AuthContext'
 import EntityTable from '../components/EntityTable'
+import EntityFilters, { useEntityFilters } from '../components/EntityFilters'
 import EntityForm from '../components/EntityForm'
 import LoadError from '../components/LoadError'
 import Toast from '../components/Toast'
@@ -8,6 +9,7 @@ import { useTracker } from '../data/TrackerDataContext'
 import { useEntityEditor } from '../hooks/useEntityEditor'
 import { canWriteRecords } from '../lib/permissions'
 import { downloadCsv } from '../lib/csv'
+import { applyFilters } from '../lib/filters'
 
 const FEATURE = entities.feature
 
@@ -16,6 +18,11 @@ export default function Features() {
   const { features, vocabularies, openActionCounts, loading, error, loadedAt, refresh } =
     useTracker()
   const editor = useEntityEditor(FEATURE)
+  const filters = useEntityFilters(FEATURE)
+
+  // Filters narrow before the table's own free-text search, so the "N of M"
+  // count below reads against the filtered slice rather than all 108.
+  const visible = applyFilters(features, filters.values)
 
   if (state.status !== 'ready') return null
   const canWrite = canWriteRecords(state.user.role)
@@ -33,8 +40,8 @@ export default function Features() {
         <div className="row row--tight">
           <button
             className="btn"
-            onClick={() => downloadCsv(FEATURE, features)}
-            disabled={features.length === 0}
+            onClick={() => downloadCsv(FEATURE, visible)}
+            disabled={visible.length === 0}
           >
             Export CSV
           </button>
@@ -48,6 +55,14 @@ export default function Features() {
           )}
         </div>
       </div>
+
+      <EntityFilters
+        entity={FEATURE}
+        vocabularies={vocabularies}
+        values={filters.values}
+        onChange={filters.setValue}
+        onClear={filters.clear}
+      />
 
       {error && <LoadError error={error} />}
       <Toast message={editor.toast} onDismiss={() => editor.setToast(null)} />
@@ -63,7 +78,7 @@ export default function Features() {
       {!error && (features.length > 0 || !loading) && (
         <EntityTable
           entity={FEATURE}
-          records={features}
+          records={visible}
           vocabularies={vocabularies}
           rowHref={(record) => `/features/${encodeURIComponent(record.id)}`}
           derived={[

@@ -1,23 +1,28 @@
 import { useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import EntityTable from '../components/EntityTable'
+import EntityFilters, { useEntityFilters } from '../components/EntityFilters'
 import EntityForm from '../components/EntityForm'
 import LoadError from '../components/LoadError'
 import Toast from '../components/Toast'
 import { entities } from '../config/schema'
-import { vocabularyOf } from '../sheets/lists'
 import { useTracker } from '../data/TrackerDataContext'
 import { useEntityEditor } from '../hooks/useEntityEditor'
 import { canWriteRecords } from '../lib/permissions'
 import { downloadCsv } from '../lib/csv'
+import { applyFilters } from '../lib/filters'
 import { daysOverdue, isOpenAction, isOwnedAction, orphanActions } from '../lib/rollups'
 
 const FEATURE = entities.feature
 const ACTION = entities.action
 
 type Filter = 'open' | 'all'
-/** '' = every actor. Otherwise a Lists actor id, or 'ours' for the team. */
-type ActorFilter = string
+
+/**
+ * "Ours" is not an actor, it is a set of them — which is why it cannot just be
+ * another option value matched by string equality.
+ */
+const OURS = '!ours'
 
 export default function Actions() {
   const { state } = useAuth()
@@ -36,7 +41,7 @@ export default function Actions() {
   // Open-first by default: this page is the workbook's "Open Tasks" view, and
   // the whole point of that tab was what still needs doing.
   const [filter, setFilter] = useState<Filter>('open')
-  const [actor, setActor] = useState<ActorFilter>('')
+  const filters = useEntityFilters(ACTION)
 
   const orphans = useMemo(
     () => orphanActions(actions, new Set(features.map((f) => f.id))),
@@ -45,12 +50,14 @@ export default function Actions() {
 
   const visible = useMemo(() => {
     let rows = filter === 'open' ? actions.filter(isOpenAction) : actions
-    if (actor === 'ours') rows = rows.filter((a) => isOwnedAction(a, ownedActors))
-    else if (actor) rows = rows.filter((a) => String(a.fields.actor ?? '') === actor)
-    return rows
-  }, [actions, filter, actor, ownedActors])
 
-  const actorOptions = vocabularyOf(vocabularies, 'actor').active
+    // "Ours" spans however many actors the sheet marks as owned, so it is
+    // resolved here rather than by the generic equality match.
+    const { actor, ...rest } = filters.values
+    if (actor === OURS) rows = rows.filter((a) => isOwnedAction(a, ownedActors))
+
+    return applyFilters(rows, actor === OURS ? rest : filters.values)
+  }, [actions, filter, filters.values, ownedActors])
 
   if (state.status !== 'ready') return null
   const canWrite = canWriteRecords(state.user.role)
@@ -67,20 +74,6 @@ export default function Actions() {
           </p>
         </div>
         <div className="row row--tight">
-          <select
-            className="input input--inline"
-            value={actor}
-            onChange={(event) => setActor(event.target.value)}
-            aria-label="Filter by who does it"
-          >
-            <option value="">Everyone</option>
-            <option value="ours">Ours only</option>
-            {actorOptions.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
           <button
             className="btn"
             onClick={() => setFilter((f) => (f === 'open' ? 'all' : 'open'))}
@@ -104,6 +97,15 @@ export default function Actions() {
           )}
         </div>
       </div>
+
+      <EntityFilters
+        entity={ACTION}
+        vocabularies={vocabularies}
+        values={filters.values}
+        onChange={filters.setValue}
+        onClear={filters.clear}
+        extraOptions={{ actor: [{ value: OURS, label: 'Ours only' }] }}
+      />
 
       {error && <LoadError error={error} />}
       <Toast message={editor.toast} onDismiss={() => editor.setToast(null)} />

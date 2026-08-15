@@ -170,6 +170,8 @@ adding a release stays a data edit rather than an admin task.
 
 - **`HashRouter`** — URLs contain `#` (`/tracker/#/features/<uuid>`). GitHub Pages has no rewrite rules,
   so `BrowserRouter` would 404 on a hard refresh of a deep link.
+- **Filters live in the URL.** `#/features?channel=retail-banking&status=done` is a shareable
+  link, and it is how the Dashboard's breakdown bars take you to the rows behind a number.
 - **`base: '/tracker/'`** in `vite.config.ts` must match the repo name. Wrong value produces a white
   page with 404s on every asset — the most common Pages failure.
 - **Port 5173 is pinned** (`strictPort`). Vite silently moving to 5174 would break OAuth with an
