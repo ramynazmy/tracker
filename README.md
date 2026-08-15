@@ -1,18 +1,45 @@
 # Tracker
 
-A single-page app served from GitHub Pages that reads and writes records held in a Google Sheet.
-No server, no database, no hosting cost — the Sheet is the storage and Google's own identity and
-file-permission systems are the access control.
+Feature and action tracker for the DDC architecture team. A single-page app served from GitHub
+Pages that reads and writes a Google Sheet. No server, no database, no hosting cost — the Sheet is
+the storage and Google's own identity and file-permission systems are the access control.
 
 Full design and phased build plan: **[plan.md](./plan.md)**
 
-**Live:** <https://ramynazmy.github.io/tracker/> · all six phases complete.
+**Live:** <https://ramynazmy.github.io/tracker/>
 
 ## What it does
 
-Sign in with Google, then view, create, edit and soft-delete records held in a Google Sheet.
+Sign in with Google, then track two things:
+
+- **Features** — a piece of work belonging to a channel and a release, with a status, complexity,
+  owner and ASD state.
+- **Actions** — something the architect team has to do about a feature. Each action points at its
+  feature by UUID, so renaming a feature never orphans its actions.
+
+Open a feature to see its actions and raise new ones. The Actions page lists everything still open
+across all features, with days overdue.
+
 Three roles — `admin`, `editor`, `viewer` — with an admin screen for managing people, CSV export,
 and an audit log of every write.
+
+### Channels, releases, owners and statuses live in the Sheet
+
+They are rows in the **`Lists`** tab, not values in the code. Adding a release is a row an editor
+types; the app picks it up on its next load. No code change, no deploy.
+
+Two rules make that safe:
+
+- Records store a **stable id** (`business-banking-r3`) and the `Lists` tab holds the label people
+  read. Renaming a channel is one cell edit, not a rewrite of every feature that uses it.
+- Retire a value by setting `active = FALSE`. **Never delete the row** — deleting it strands every
+  record that referenced it.
+
+Releases are scoped to a channel via the `parent` column, so `R6` under one channel is a different
+release from `R6` under another. Choosing a Channel in the form narrows the Release dropdown.
+
+After editing `Lists`, run `refreshValidation()` in Apps Script to update the *in-sheet* dropdowns.
+The app does not need it.
 
 ## Commands
 
@@ -30,11 +57,12 @@ two minutes.
 
 ## Setup
 
-Two build-time variables, both in `.env.production` (committed) or `.env.local` (dev):
+Build-time variables, in `.env.production` (committed) or `.env.local` (dev):
 
 ```
 VITE_SPREADSHEET_ID     the middle part of the Sheet URL
 VITE_GOOGLE_CLIENT_ID   from Google Cloud → Credentials, ends .apps.googleusercontent.com
+VITE_GCP_PROJECT_ID     optional — only deep-links the admin runbook to the right Cloud project
 ```
 
 > **Neither is a secret.** OAuth client IDs are public identifiers and this flow uses no client
@@ -109,15 +137,18 @@ revoke it earlier from a static SPA.
 | Role | Drive sharing | Can do |
 |---|---|---|
 | `admin` | Editor | everything, including the Users and Audit tabs |
-| `editor` | Editor | create, edit and delete records |
+| `editor` | Editor | create, edit and delete features and actions, and edit the `Lists` vocabularies |
 | `viewer` | **Viewer** | read only — enforced by Google, not by the UI |
 
-The `Users`, `Audit` and `Records` row 1 ranges are protected in the Sheet so only admins can edit
-them. Row 1 is protected because it is the Sheet↔app column contract.
+The `Users` and `Audit` tabs, and row 1 of `Features`, `Actions` and `Lists`, are protected in the
+Sheet so only admins can edit them. Row 1 is protected because it is the Sheet↔app column contract.
+
+Note that only **row 1** of `Lists` is locked — the rows below it are deliberately left editable, so
+adding a release stays a data edit rather than an admin task.
 
 ## Conventions
 
-- **`HashRouter`** — URLs contain `#` (`/tracker/#/records/123`). GitHub Pages has no rewrite rules,
+- **`HashRouter`** — URLs contain `#` (`/tracker/#/features/<uuid>`). GitHub Pages has no rewrite rules,
   so `BrowserRouter` would 404 on a hard refresh of a deep link.
 - **`base: '/tracker/'`** in `vite.config.ts` must match the repo name. Wrong value produces a white
   page with 404s on every asset — the most common Pages failure.
@@ -127,6 +158,10 @@ them. Row 1 is protected because it is the Sheet↔app column contract.
   immediately before any write, because sorting the Sheet moves rows.
 - **Text written to the Sheet is sanitised.** `USER_ENTERED` turns a leading `=` into a live
   formula, and `=IMAGE(...)` can exfiltrate cell contents to an external URL.
+- **Do not put formulas in the `Features` or `Actions` tabs.** The app writes a whole row at a
+  time, so a formula anywhere in that row is silently replaced with a blank the next time anyone
+  edits that record. Counts and rollups — like the Open Actions column — are calculated by the app
+  instead. This is the one habit worth unlearning if you came from the workbook.
 
 ## Troubleshooting
 
@@ -138,7 +173,9 @@ them. Row 1 is protected because it is the Sheet↔app column contract.
 | "Sign-in did not grant access to Google Sheets" | scope added after the grant — revoke at [myaccount.google.com/permissions](https://myaccount.google.com/permissions) and sign in again |
 | "No access" after signing in | not shared on the Sheet, absent from `Users`, or `active = FALSE` |
 | "Your access level changed" on save | the `Users` role and the Drive sharing level disagree |
-| `Sheet is missing column X` | a header in `Records` row 1 was renamed or deleted |
+| `Sheet is missing column X` | a header in that tab's row 1 was renamed or deleted — the message names the tab |
+| The tab does not exist at all | run `setupTracker()` from the spreadsheet's Apps Script editor |
+| A value shows as a highlighted "unknown" chip | it has no matching row in `Lists` — usually typed straight into the Sheet |
 
 The **Health** page shows config, auth state and token status, and has a button that forces a token
 refresh — useful for confirming the silent-refresh path without waiting an hour.

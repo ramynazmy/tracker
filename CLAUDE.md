@@ -6,6 +6,11 @@ A React SPA on GitHub Pages that reads and writes a Google Sheet. No server.
 Design and phase history: [plan.md](./plan.md). User-facing setup, the access
 runbook and troubleshooting: [README.md](./README.md).
 
+It tracks two entities: a **feature** belongs to a channel and a release; an
+**action** is something the architect team has to do about a feature. Actions
+reference their feature by UUID. Channels, releases, owners and every status are
+**data in the `Lists` tab**, read at runtime — not options in the code.
+
 ## Commands
 
 ```bash
@@ -38,6 +43,22 @@ key, client secret, or write-scoped API key would be world-readable.
 - **Row numbers are never identity.** Sorting the sheet moves every row. Each
   write re-reads the sheet and resolves the row from the record's UUID
   immediately beforehand. Never cache a row index across a user interaction.
+  This holds even though the app already has a cached snapshot: writes take
+  their own fresh read, and that cost is deliberate.
+- **Never put a formula in an entity tab.** `writeRow` PUTs the whole row from
+  column A to the last mapped column, so any formula in that span is wiped the
+  first time someone edits that row. The workbook's `#` and `Open Actions`
+  columns were formulas; both are computed in the client now. Derived values
+  live in `src/lib/rollups.ts` and are passed to `EntityTable` as
+  `derived` columns — deliberately *not* `entity.fields`, because
+  `recordToRow` only iterates `entity.fields`, which makes a derived column
+  structurally incapable of reaching the sheet.
+- **`reference` and `link` warn, they never reject.** Unlike `select`,
+  `validateField` accepts a value it does not recognise. The vocabulary is
+  editable data outside the app's control: if an admin retires a release,
+  rejecting would stop an editor changing the *owner* on any feature that
+  carries it. Unrecognised values render with `chip--unknown`; retired ones
+  render normally, which is why `lists.ts` keeps `active` and `known` apart.
 - **`USER_ENTERED` makes a leading `=` a live formula.** All text written to the
   sheet goes through `sanitizeText()`. `=IMAGE(...)` is a data-exfiltration
   path, not a display bug.
@@ -80,10 +101,15 @@ dynamic lookup like `import.meta.env[key]` works in dev and silently returns
 ```
 src/auth/      GIS token lifecycle, session state machine
 src/sheets/    the ONLY place that knows about the Sheets API
-src/config/    schema.ts (field definitions), env.ts
-src/lib/       validation, permissions, csv, console deep links
-src/pages/     Records, Users (admin only), Health (diagnostics)
-scripts/       setup-sheet.gs — Apps Script, run by hand in the sheet
+               collection.ts  entity-parameterized CRUD
+               lists.ts       the Lists tab (runtime vocabularies)
+               snapshot.ts    loadAppData — every tab in ONE batchGet
+src/data/      TrackerDataProvider — the single shared cache
+src/config/    schema.ts (entity + field definitions), env.ts
+src/lib/       validate, permissions, csv, rollups, console deep links
+src/pages/     Features, FeatureDetail, Actions, Users (admin), Health
+scripts/       setup-sheet.gs      Apps Script, run by hand in the sheet
+               migrate-workbook.py one-time .xlsm → TSV import
 ```
 
 `src/sheets/` is deliberately the sole storage-aware module: migrating to an
@@ -96,19 +122,38 @@ waiting an hour.
 ## Quotas
 
 60 read and 60 write requests per user per minute. An update costs ~3 calls
-(snapshot, write, audit). Reads are batched and cached; the hooks do not refetch
-on navigation for this reason.
+(snapshot, write, audit).
+
+The whole app loads in **one** request: `loadAppData()` batches Features,
+Actions and Lists into a single `batchGet`. `TrackerDataProvider` holds that
+snapshot for every page, so navigating costs nothing — this is why it is a
+provider and not a per-page hook. Users is read separately, once, at sign-in.
 
 ## Changes that need the sheet, not the repo
 
-Row 1 of `Records` and the whole `Users` and `Audit` tabs are protected ranges,
-so these need an admin acting in Google Sheets:
+Row 1 of `Features`, `Actions` and `Lists`, plus the whole `Users` and `Audit`
+tabs, are protected ranges.
 
-- **Adding a field:** add an entry to `schema.fields` in `src/config/schema.ts`
-  *and* the matching header cell to row 1 of `Records`. That one entry drives the
-  form input, the validation and the table column.
+**Adding a channel, release, owner, platform or status is NOT one of these.**
+Those are rows in the `Lists` tab, editable by any editor, and the app picks
+them up on its next load with no deploy. That is the entire point of the
+`reference` field type — do not add them to `schema.ts`. After editing `Lists`,
+run `refreshValidation()` so the *in-sheet* dropdowns catch up; the app does not
+need it.
+
+These do need an admin acting in Google Sheets:
+
+- **Adding a field:** add an entry to the entity's `fields` in
+  `src/config/schema.ts` *and* the matching header cell to row 1 of that
+  entity's tab. That one entry drives the form input, the validation and the
+  table column.
+- **Adding an entity:** a new `EntitySchema` in `entities`, a range in
+  `APP_RANGES` (`src/sheets/snapshot.ts`), a tab, and a route. Nothing in
+  `collection.ts` or `rows.ts` should need to change — if it does, something
+  has been hardcoded that should not be.
 - **Adding a person:** three gates, in order — OAuth test user, Drive share,
   `Users` row. The Drive share is the only one Google enforces. The Users page
   links to each step; the runbook is in the README.
 - **Re-protecting ranges** after a structural change: `protectRanges()` in
-  `scripts/setup-sheet.gs`.
+  `scripts/setup-sheet.gs`. It protects `Lists` **row 1 only** on purpose —
+  locking the whole tab would put "add a release" back behind an admin.
