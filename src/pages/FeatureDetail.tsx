@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import EntityTable from '../components/EntityTable'
+import ActionTimeline from '../components/ActionTimeline'
 import EntityForm from '../components/EntityForm'
 import LoadError from '../components/LoadError'
 import Toast from '../components/Toast'
@@ -9,7 +9,8 @@ import { actionFormFields, entities, type ActionVariant } from '../config/schema
 import { useTracker } from '../data/TrackerDataContext'
 import { useEntityEditor } from '../hooks/useEntityEditor'
 import { canWriteRecords } from '../lib/permissions'
-import { actionsForFeature, dueTone, isOpenAction, isOwnedAction } from '../lib/rollups'
+import { actionsForFeature, isOpenAction, isOwnedAction } from '../lib/rollups'
+import { buildTimeline } from '../lib/timeline'
 import { labelFor } from '../sheets/lists'
 
 const FEATURE = entities.feature
@@ -32,10 +33,18 @@ export default function FeatureDetail() {
   const feature = features.find((f) => f.id === featureId)
   const own = useMemo(() => actionsForFeature(actions, featureId), [actions, featureId])
 
-  if (state.status !== 'ready') return null
-  const canWrite = canWriteRecords(state.user.role)
   // UTC, matching every other date comparison in the app.
   const todayIso = new Date().toISOString().slice(0, 10)
+  const entries = useMemo(() => buildTimeline(own, todayIso), [own, todayIso])
+  // Anything the timeline's date parsing skipped still gets listed — a view
+  // change must never make an action disappear.
+  const undated = useMemo(() => {
+    const dated = new Set(entries.map((e) => e.action.id))
+    return own.filter((a) => !dated.has(a.id))
+  }, [own, entries])
+
+  if (state.status !== 'ready') return null
+  const canWrite = canWriteRecords(state.user.role)
 
   if (error) {
     return (
@@ -154,19 +163,16 @@ export default function FeatureDetail() {
       <Toast message={editor.toast} onDismiss={() => editor.setToast(null)} />
       <Toast message={featureEditor.toast} onDismiss={() => featureEditor.setToast(null)} />
 
-      <EntityTable
-        entity={ACTION}
-        records={own}
+      <ActionTimeline
+        entries={entries}
+        undated={undated}
         vocabularies={vocabularies}
-        linkLabels={featureNames}
-        cellClass={(record, field) => {
-          if (field.key !== 'dueDate') return undefined
-          const tone = dueTone(record, todayIso, ownedActors)
-          return tone ? `due--${tone}` : undefined
-        }}
-        canWrite={canWrite}
-        onEdit={(record) => editor.setEditing({ mode: 'edit', record })}
-        onDelete={(record) => void editor.destroy(record)}
+        featureNames={featureNames}
+        ownedActors={ownedActors}
+        today={todayIso}
+        showFeature={false}
+        onEdit={canWrite ? (record) => editor.setEditing({ mode: 'edit', record }) : undefined}
+        onDelete={canWrite ? (record) => void editor.destroy(record) : undefined}
         emptyMessage="No actions raised against this feature."
       />
 

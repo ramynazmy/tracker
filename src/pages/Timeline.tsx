@@ -1,14 +1,12 @@
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { entities, type Field } from '../config/schema'
+import ActionTimeline from '../components/ActionTimeline'
 import EntityFilters, { useEntityFilters } from '../components/EntityFilters'
 import LoadError from '../components/LoadError'
 import { useTracker } from '../data/TrackerDataContext'
 import { applyFilters } from '../lib/filters'
-import { dueTone, isOwnedAction } from '../lib/rollups'
-import { buildTimeline, groupByMonth, monthLabel } from '../lib/timeline'
-import { labelFor } from '../sheets/lists'
-import type { TrackerRecord } from '../sheets/rows'
+import { buildTimeline } from '../lib/timeline'
 
 const FEATURE = entities.feature
 const ACTION = entities.action
@@ -44,7 +42,7 @@ export default function Timeline() {
 
   const today = todayIso()
 
-  const months = useMemo(() => {
+  const entries = useMemo(() => {
     const featureValues = new Map(features.map((f) => [f.id, f.fields]))
     const all = featureId
       ? actions.filter((a) => String(a.fields.featureId ?? '') === featureId)
@@ -74,10 +72,10 @@ export default function Timeline() {
       actor: filters.values.actor ?? '',
     })
 
-    return groupByMonth(buildTimeline(byAction, today))
+    return buildTimeline(byAction, today)
   }, [features, actions, featureId, filters.values, today])
 
-  const total = months.reduce((n, m) => n + m.entries.length, 0)
+  const total = entries.length
 
   if (error) {
     return (
@@ -135,78 +133,14 @@ export default function Timeline() {
           Nothing dated to show. Actions need a Start or Due date to appear here.
         </p>
       ) : (
-        months.map((month) => (
-          <div key={month.month} className="tl-month">
-            <h2 className="tl-month__label">{monthLabel(month.month)}</h2>
-            <ol className="tl">
-              {month.entries.map((entry) => {
-                // "Overdue" is a statement about work WE owe. An event —
-                // somebody else's milestone, saved with no status — would
-                // otherwise read as overdue the day after it happens, because
-                // a blank status counts as open.
-                const ours = isOwnedAction(entry.action, ownedActors)
-                const overdue = entry.overdue && ours
-                // Only a DUE date wears a traffic light; a raised date states
-                // history and an event stays in plain ink.
-                const tone = entry.kind === 'due' ? dueTone(entry.action, today, ownedActors) : null
-                return (
-                <li
-                  key={entry.key}
-                  className={`tl__item${entry.past ? '' : ' tl__item--future'}`}
-                >
-                  <time
-                    className={`tl__date${tone ? ` tl__date--${tone}` : ''}`}
-                    dateTime={entry.date}
-                  >
-                    {entry.date}
-                  </time>
-                  {/* Shape carries past-vs-future, not colour alone. */}
-                  <span
-                    className={`tl__dot${entry.past ? '' : ' tl__dot--hollow'}${
-                      overdue ? ' tl__dot--overdue' : ''
-                    }`}
-                    aria-hidden
-                  />
-                  <div className="tl__body">
-                    <p className="tl__title">
-                      <span className="tl__kind">
-                        {!ours ? 'Event' : entry.kind === 'raised' ? 'Started' : 'Due'}
-                      </span>{' '}
-                      {String(entry.action.fields[ACTION.titleField] ?? '(untitled)')}
-                      {/* Never colour alone: overdue says so in words. */}
-                      {overdue && <span className="tl__flag">overdue</span>}
-                    </p>
-                    <p className="tl__meta muted">
-                      <FeatureLink action={entry.action} featureNames={featureNames} />
-                      {entry.action.fields.type && (
-                        <> · {labelFor(vocabularies, 'actionType', String(entry.action.fields.type))}</>
-                      )}
-                      {' · '}
-                      {entry.action.fields.actor
-                        ? labelFor(vocabularies, 'actor', String(entry.action.fields.actor))
-                        : 'Architecture'}
-                    </p>
-                  </div>
-                </li>
-                )
-              })}
-            </ol>
-          </div>
-        ))
+        <ActionTimeline
+          entries={entries}
+          vocabularies={vocabularies}
+          featureNames={featureNames}
+          ownedActors={ownedActors}
+          today={today}
+        />
       )}
     </section>
   )
-}
-
-function FeatureLink({
-  action,
-  featureNames,
-}: {
-  action: TrackerRecord
-  featureNames: ReadonlyMap<string, string>
-}) {
-  const id = String(action.fields.featureId ?? '')
-  const name = featureNames.get(id)
-  if (!name) return <span className="chip chip--unknown">Unknown feature</span>
-  return <Link to={`/features/${encodeURIComponent(id)}`}>{name}</Link>
 }
