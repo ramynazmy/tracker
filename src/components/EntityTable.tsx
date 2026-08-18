@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import type { EntitySchema, Field } from '../config/schema'
 import { isUnknownValue, labelFor, type Vocabularies } from '../sheets/lists'
@@ -50,6 +50,12 @@ interface Props {
    * due state without this component knowing what a due date is.
    */
   rowClass?: (record: TrackerRecord) => string | undefined
+  /**
+   * A click on a row's plain area — links and buttons inside the row keep
+   * their own jobs and never trigger it. The actions page opens its notes
+   * bubble with this.
+   */
+  onRowClick?: (record: TrackerRecord, event: ReactMouseEvent) => void
   /** False for viewers: the column is omitted, not merely disabled. */
   canWrite: boolean
   onEdit: (record: TrackerRecord) => void
@@ -65,6 +71,7 @@ export default function EntityTable({
   derived = [],
   rowHref,
   rowClass,
+  onRowClick,
   canWrite,
   onEdit,
   onDelete,
@@ -167,7 +174,21 @@ export default function EntityTable({
             </thead>
             <tbody>
               {visible.map((record) => (
-                <tr key={record.id} className={rowClass?.(record)}>
+                <tr
+                  key={record.id}
+                  className={
+                    [rowClass?.(record), onRowClick && 'records__row--clickable']
+                      .filter(Boolean)
+                      .join(' ') || undefined
+                  }
+                  onClick={
+                    onRowClick &&
+                    ((event) => {
+                      if ((event.target as HTMLElement).closest('a, button')) return
+                      onRowClick(record, event)
+                    })
+                  }
+                >
                   {columns.map((field, position) => (
                     <td key={field.key} className={`cell cell--${field.type}`}>
                       {position === 0 && rowHref ? (

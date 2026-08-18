@@ -1090,6 +1090,47 @@ a.stat:hover {
   background: var(--bg);
 }
 
+/* ---------------------------------------------------------------------------
+   Notes bubble
+   Opened by clicking a row or timeline entry; closed by any press outside it
+   (a document-level listener in the component, not a backdrop — a backdrop
+   would swallow the next click).
+   --------------------------------------------------------------------------- */
+
+.notes-bubble {
+  position: fixed;
+  z-index: 20;
+  /* Keep in step with WIDTH/HEIGHT in NotesBubble.tsx, which clamp it to the
+     viewport. */
+  width: min(22.5rem, calc(100vw - 1rem));
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  box-shadow: 0 10px 30px rgb(2 45 99 / 0.18);
+}
+
+.notes-bubble__title {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--brand-deep);
+}
+
+.notes-bubble__text {
+  margin: 0;
+  font-size: 0.88rem;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.tl__body--clickable,
+.records tr.records__row--clickable td {
+  cursor: pointer;
+}
+
 .tl__meta {
   margin: 0.1rem 0 0;
   font-size: 0.85rem;

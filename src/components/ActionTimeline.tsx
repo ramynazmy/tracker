@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import NotesBubble from './NotesBubble'
 import { entities } from '../config/schema'
 import { dueTone, isOwnedAction } from '../lib/rollups'
 import { groupByMonth, monthLabel, type TimelineEntry } from '../lib/timeline'
@@ -49,12 +51,25 @@ export default function ActionTimeline({
   onDelete,
   emptyMessage,
 }: Props) {
+  // The notes bubble: one open at most, anchored where the click landed.
+  const [bubble, setBubble] = useState<{ action: TrackerRecord; x: number; y: number } | null>(
+    null,
+  )
+
   if (entries.length === 0 && undated.length === 0) {
     return emptyMessage ? <p className="muted">{emptyMessage}</p> : null
   }
 
   const body = (action: TrackerRecord, kindLabel: string, overdue: boolean) => (
-    <div className="tl__body">
+    <div
+      className="tl__body tl__body--clickable"
+      onClick={(event) => {
+        // Links and buttons keep their own jobs — the bubble is the click's
+        // meaning only on the entry's plain text.
+        if ((event.target as HTMLElement).closest('a, button')) return
+        setBubble({ action, x: event.clientX, y: event.clientY })
+      }}
+    >
       <p className="tl__title">
         <span className="tl__kind">{kindLabel}</span>{' '}
         {String(action.fields[ACTION.titleField] ?? '(untitled)')}
@@ -169,6 +184,15 @@ export default function ActionTimeline({
             })}
           </ol>
         </div>
+      )}
+
+      {bubble && (
+        <NotesBubble
+          title={String(bubble.action.fields[ACTION.titleField] ?? '(untitled)')}
+          notes={String(bubble.action.fields.notes ?? '')}
+          anchor={bubble}
+          onClose={() => setBubble(null)}
+        />
       )}
     </>
   )

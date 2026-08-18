@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import EntityTable from '../components/EntityTable'
+import NotesBubble from '../components/NotesBubble'
 import EntityFilters, { useEntityFilters } from '../components/EntityFilters'
 import EntityForm from '../components/EntityForm'
 import LoadError from '../components/LoadError'
@@ -46,6 +47,12 @@ export default function Actions() {
   // the whole point of that tab was what still needs doing.
   const [filter, setFilter] = useState<Filter>('open')
   const filters = useEntityFilters(filterableFields(ACTION))
+  // The notes bubble: one open at most, anchored where the click landed.
+  const [bubble, setBubble] = useState<{
+    record: (typeof actions)[number]
+    x: number
+    y: number
+  } | null>(null)
 
   const orphans = useMemo(
     () => orphanActions(actions, new Set(features.map((f) => f.id))),
@@ -171,12 +178,24 @@ export default function Actions() {
             const tone = dueTone(record, todayIso, ownedActors)
             return tone ? `due--${tone}` : undefined
           }}
+          onRowClick={(record, event) =>
+            setBubble({ record, x: event.clientX, y: event.clientY })
+          }
           canWrite={canWrite}
           onEdit={(record) => editor.setEditing({ mode: 'edit', record })}
           onDelete={(record) => void editor.destroy(record)}
           emptyMessage={
             filter === 'open' ? 'Nothing open — everything is done or cancelled.' : 'No actions yet.'
           }
+        />
+      )}
+
+      {bubble && (
+        <NotesBubble
+          title={String(bubble.record.fields[ACTION.titleField] ?? '(untitled)')}
+          notes={String(bubble.record.fields.notes ?? '')}
+          anchor={bubble}
+          onClose={() => setBubble(null)}
         />
       )}
 
