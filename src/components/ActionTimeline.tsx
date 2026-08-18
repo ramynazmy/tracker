@@ -128,10 +128,11 @@ export default function ActionTimeline({
               // a blank status counts as open.
               const ours = isOwnedAction(entry.action, ownedActors)
               const overdue = entry.overdue && ours
-              // The whole line wears the action's traffic light — both its
-              // raised and its due entry, because the state belongs to the
-              // action, not to one of its dates. An event stays in plain ink.
-              const tone = dueTone(entry.action, today, ownedActors)
+              // Only the DUE line wears the action's traffic light. A
+              // "Started" line states history and stays in plain ink — as
+              // does an event.
+              const tone =
+                entry.kind === 'due' ? dueTone(entry.action, today, ownedActors) : null
               return (
                 <li
                   key={entry.key}
