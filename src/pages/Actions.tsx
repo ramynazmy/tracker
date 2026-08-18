@@ -167,8 +167,7 @@ export default function Actions() {
               value: (record) => daysOverdue(record, today),
             },
           ]}
-          cellClass={(record, field) => {
-            if (field.key !== 'dueDate') return undefined
+          rowClass={(record) => {
             const tone = dueTone(record, todayIso, ownedActors)
             return tone ? `due--${tone}` : undefined
           }}

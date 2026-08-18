@@ -242,6 +242,10 @@ describe('dueTone', () => {
     )
   })
 
+  it('is done even without a due date — finished work reads as finished', () => {
+    expect(dueTone(action({ status: 'done' }), TODAY, OURS)).toBe('done')
+  })
+
   it('carries no tone on an event — someone else performs it', () => {
     expect(dueTone(action({ dueDate: '2026-08-01', actor: 'vendor' }), TODAY, OURS)).toBeNull()
   })
@@ -250,7 +254,7 @@ describe('dueTone', () => {
     expect(dueTone(action({ dueDate: '2026-08-01', status: 'open' }), TODAY, OURS)).toBe('late')
   })
 
-  it('carries no tone without a well-formed due date', () => {
+  it('carries no tone on open work without a well-formed due date', () => {
     expect(dueTone(action({ status: 'open' }), TODAY, OURS)).toBeNull()
     expect(dueTone(action({ dueDate: '1508/2026', status: 'open' }), TODAY, OURS)).toBeNull()
   })

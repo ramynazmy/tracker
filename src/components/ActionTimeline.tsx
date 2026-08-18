@@ -113,19 +113,18 @@ export default function ActionTimeline({
               // a blank status counts as open.
               const ours = isOwnedAction(entry.action, ownedActors)
               const overdue = entry.overdue && ours
-              // Only a DUE date wears a traffic light; a raised date states
-              // history and an event stays in plain ink.
-              const tone =
-                entry.kind === 'due' ? dueTone(entry.action, today, ownedActors) : null
+              // The whole line wears the action's traffic light — both its
+              // raised and its due entry, because the state belongs to the
+              // action, not to one of its dates. An event stays in plain ink.
+              const tone = dueTone(entry.action, today, ownedActors)
               return (
                 <li
                   key={entry.key}
-                  className={`tl__item${entry.past ? '' : ' tl__item--future'}`}
+                  className={`tl__item${entry.past ? '' : ' tl__item--future'}${
+                    tone ? ` tl__item--${tone}` : ''
+                  }`}
                 >
-                  <time
-                    className={`tl__date${tone ? ` tl__date--${tone}` : ''}`}
-                    dateTime={entry.date}
-                  >
+                  <time className="tl__date" dateTime={entry.date}>
                     {entry.date}
                   </time>
                   {/* Shape carries past-vs-future, not colour alone. */}
@@ -151,8 +150,13 @@ export default function ActionTimeline({
         <div className="tl-month">
           <h2 className="tl-month__label">No date</h2>
           <ol className="tl">
-            {undated.map((action) => (
-              <li key={action.id} className="tl__item tl__item--future">
+            {undated.map((action) => {
+              const tone = dueTone(action, today, ownedActors)
+              return (
+              <li
+                key={action.id}
+                className={`tl__item tl__item--future${tone ? ` tl__item--${tone}` : ''}`}
+              >
                 <span className="tl__date">—</span>
                 <span className="tl__dot tl__dot--hollow" aria-hidden />
                 {body(
@@ -161,7 +165,8 @@ export default function ActionTimeline({
                   false,
                 )}
               </li>
-            ))}
+              )
+            })}
           </ol>
         </div>
       )}

@@ -1027,35 +1027,67 @@ a.stat:hover {
 }
 
 /**
- * The due-date traffic light: red = missed and still open, yellow = due and
- * open, green = closed. Only OUR actions wear it — an event carries no tone,
- * because the colours answer "are we on time" and that question means nothing
- * on somebody else's milestone. `.due--*` lands on table cells; the
- * `.tl__item` forms sit after the future-entry rule on purpose, so a toned
- * date beats the muted future treatment at equal specificity.
+ * The traffic light, worn by the WHOLE line: red = missed and still open,
+ * yellow = open with a due date still ahead, green = closed. Only OUR actions
+ * wear it — an event carries no tone, because the colours answer "are we on
+ * time" and that question means nothing on somebody else's milestone.
+ *
+ * `.due--*` lands on table rows; `.tl__item--*` on timeline entries, placed
+ * after the future-entry rule on purpose so a toned line beats the muted
+ * future treatment at equal specificity. The meta line stays muted either
+ * way — the tone is the headline, not the footnote. Words still carry every
+ * state (the status label, the overdue flag), never colour alone.
  */
-.due--late {
+.records tr.due--late td {
   color: var(--due-late);
 }
 
-.due--open {
+.records tr.due--open td {
   color: var(--due-open);
 }
 
-.due--done {
+.records tr.due--done td {
   color: var(--due-done);
 }
 
-.tl__item .tl__date--late {
+.tl__item--late .tl__title,
+.tl__item--late .tl__date,
+.tl__item--late .tl__kind {
   color: var(--due-late);
 }
 
-.tl__item .tl__date--open {
+.tl__item--open .tl__title,
+.tl__item--open .tl__date,
+.tl__item--open .tl__kind {
   color: var(--due-open);
 }
 
-.tl__item .tl__date--done {
+.tl__item--done .tl__title,
+.tl__item--done .tl__date,
+.tl__item--done .tl__kind {
   color: var(--due-done);
+}
+
+/* The dot follows the line's tone; hollow (future) keeps its open centre. */
+.tl__item--late .tl__dot {
+  background: var(--due-late);
+  border-color: var(--due-late);
+}
+
+.tl__item--open .tl__dot {
+  background: var(--due-open);
+  border-color: var(--due-open);
+}
+
+.tl__item--done .tl__dot {
+  background: var(--due-done);
+  border-color: var(--due-done);
+}
+
+.tl__item--late .tl__dot--hollow,
+.tl__item--open .tl__dot--hollow,
+.tl__item--done .tl__dot--hollow {
+  background: var(--bg);
 }
 
 .tl__meta {
