@@ -8,8 +8,9 @@
  *   4. Select `setupTracker` in the function dropdown → Run
  *   5. Authorise when prompted (it is your own script acting on your own sheet)
  *
- * Safe to re-run: it creates what is missing and rewrites the header rows, but
- * never deletes record data and never overwrites existing seed rows.
+ * Safe to re-run: it creates what is missing and appends any header a tab
+ * lacks, but it never reorders an existing header row, never deletes record
+ * data and never overwrites existing seed rows.
  *
  * ORDER OF OPERATIONS for the workbook migration:
  *   1. setupTracker()        — creates Features, Actions, Lists
@@ -38,9 +39,8 @@ var FEATURES_HEADERS = HOUSEKEEPING.concat([
   'asdStatus',
   'owner',
   'notes',
-  // Appended AFTER notes, never inserted: writeHeaders rewrites row 1 in this
-  // order while the data stays put, so inserting mid-list would shear every
-  // later column off its data.
+  // This order only matters for a brand-new tab: on an existing one,
+  // writeHeaders appends what is missing and never reorders row 1.
   'trackedByManagement',
 ])
 
@@ -117,8 +117,48 @@ function sheetNamed(ss, name) {
   return ss.getSheetByName(name) || ss.insertSheet(name)
 }
 
+/**
+ * Make row 1 carry every expected header WITHOUT moving the ones already
+ * there.
+ *
+ * This must never rewrite an existing header row into schema order. The app
+ * resolves column positions from row 1, so on a live tab whose physical order
+ * has drifted from the schema's (columns get appended over time), a wholesale
+ * rewrite relabels the columns while the data stays put — every value
+ * silently shifts one meaning sideways. That exact accident sheared the
+ * Actions tab: owners read as types, statuses as actors, dates as owners.
+ * A brand-new (empty) tab gets the full row; an existing tab only gets its
+ * missing headers appended after the last named column.
+ */
 function writeHeaders(sheet, headers) {
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold')
+  var width = sheet.getLastColumn()
+  var existing = []
+  if (width > 0) {
+    var row = sheet.getRange(1, 1, 1, width).getValues()[0]
+    for (var i = 0; i < row.length; i++) existing.push(String(row[i]).trim())
+  }
+
+  var named = existing.filter(function (h) {
+    return h !== ''
+  })
+
+  if (named.length === 0) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers])
+  } else {
+    // Append after the last non-empty header, skipping any trailing blanks.
+    var next = existing.length
+    while (next > 0 && existing[next - 1] === '') next--
+    for (var j = 0; j < headers.length; j++) {
+      if (named.indexOf(headers[j]) === -1) {
+        next++
+        sheet.getRange(1, next).setValue(headers[j])
+        named.push(headers[j])
+      }
+    }
+  }
+
+  var finalWidth = Math.max(sheet.getLastColumn(), headers.length)
+  sheet.getRange(1, 1, 1, finalWidth).setFontWeight('bold')
   sheet.setFrozenRows(1)
 }
 
