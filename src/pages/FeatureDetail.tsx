@@ -70,7 +70,10 @@ export default function FeatureDetail() {
     )
   }
 
-  const openCount = own.filter(isOpenAction).length
+  // Ours only, like every rollup: an event is not open work we owe.
+  const openCount = own.filter(
+    (a) => isOpenAction(a) && isOwnedAction(a, ownedActors),
+  ).length
 
   // Same rule as every rollup: performed by someone else = event.
   const variant: ActionVariant =

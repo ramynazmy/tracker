@@ -60,7 +60,13 @@ export default function Actions() {
   )
 
   const visible = useMemo(() => {
-    let rows = filter === 'open' ? actions.filter(isOpenAction) : actions
+    // "Open" means OUR open work. An event is somebody else's moment — its
+    // blank status would otherwise count it as open forever — so it only
+    // appears under "Show all".
+    let rows =
+      filter === 'open'
+        ? actions.filter((a) => isOpenAction(a) && isOwnedAction(a, ownedActors))
+        : actions
 
     // "Ours" spans however many actors the sheet marks as owned, so it is
     // resolved here rather than by the generic equality match.
@@ -171,7 +177,9 @@ export default function Actions() {
             {
               key: 'daysOverdue',
               label: 'Days Overdue',
-              value: (record) => daysOverdue(record, today),
+              // An event cannot be overdue — nobody here owes it.
+              value: (record) =>
+                isOwnedAction(record, ownedActors) ? daysOverdue(record, today) : null,
             },
           ]}
           rowClass={(record) => {
