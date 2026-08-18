@@ -3,6 +3,7 @@ import { useAuth } from './auth/AuthContext'
 import AuthGate from './components/AuthGate'
 import TrackerDataProvider from './data/TrackerDataProvider'
 import Dashboard from './pages/Dashboard'
+import Management from './pages/Management'
 import Features from './pages/Features'
 import FeatureDetail from './pages/FeatureDetail'
 import Actions from './pages/Actions'
@@ -43,6 +44,7 @@ export default function App() {
         {signedIn && (
           <nav className="app__nav">
             <Link to="/">Dashboard</Link>
+            <Link to="/management">Management 😄</Link>
             <Link to="/features">Features</Link>
             <Link to="/actions">Actions</Link>
             <Link to="/releases">Releases</Link>
@@ -70,6 +72,7 @@ export default function App() {
           <TrackerDataProvider actorEmail={email}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/management" element={<Management />} />
               <Route path="/features" element={<Features />} />
               <Route path="/features/:id" element={<FeatureDetail />} />
               <Route path="/actions" element={<Actions />} />

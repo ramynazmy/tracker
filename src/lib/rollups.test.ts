@@ -4,6 +4,7 @@ import {
   countBy,
   countOpenActionsByFeature,
   daysOverdue,
+  inProgressFeatureIds,
   isOpenAction,
   isOwnedAction,
   orphanActions,
@@ -122,6 +123,33 @@ describe('countOpenActionsByFeature', () => {
   it('ignores an action with no feature', () => {
     const counts = countOpenActionsByFeature([action({ featureId: '', status: 'open' })], OURS)
     expect(counts.size).toBe(0)
+  })
+})
+
+describe('inProgressFeatureIds', () => {
+  it('collects the features whose actions are in progress', () => {
+    const ids = inProgressFeatureIds([
+      action({ featureId: 'f1', status: 'in-progress' }),
+      action({ featureId: 'f2', status: 'open' }),
+      action({ featureId: 'f3', status: 'done' }),
+    ])
+    expect([...ids]).toEqual(['f1'])
+  })
+
+  it('ignores case and surrounding space, like isOpenAction', () => {
+    const ids = inProgressFeatureIds([action({ featureId: 'f1', status: ' In-Progress ' })])
+    expect(ids.has('f1')).toBe(true)
+  })
+
+  it('does not treat merely-open or blank statuses as in progress', () => {
+    // "Open" means raised, not being worked — the dashboard's activity gate
+    // is a statement about movement, and an untouched open action is not it.
+    expect(inProgressFeatureIds([action({ featureId: 'f1', status: 'open' })]).size).toBe(0)
+    expect(inProgressFeatureIds([action({ featureId: 'f1' })]).size).toBe(0)
+  })
+
+  it('skips an action with no feature', () => {
+    expect(inProgressFeatureIds([action({ status: 'in-progress' })]).size).toBe(0)
   })
 })
 

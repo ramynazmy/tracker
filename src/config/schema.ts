@@ -129,6 +129,16 @@ const featureFields: readonly Field[] = [
   { key: 'asdStatus', label: 'ASD Status', type: 'reference', listKind: 'asdStatus' },
   { key: 'owner', label: 'Owner', type: 'reference', listKind: 'owner' },
   { key: 'notes', label: 'Notes', type: 'longtext', maxLength: 2000 },
+  // A `select`, not a Lists reference: this is a flag with exactly two states,
+  // not a vocabulary anyone should grow. Feeds the Management page. Last on
+  // purpose — it was appended to the sheet after the others, and keeping the
+  // order aligned keeps row 1 readable against this list.
+  {
+    key: 'trackedByManagement',
+    label: 'Tracked by Management',
+    type: 'select',
+    options: ['yes', 'no'],
+  },
 ]
 
 const actionFields: readonly Field[] = [

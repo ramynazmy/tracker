@@ -74,6 +74,24 @@ export function countOpenActionsByFeature(
   return counts
 }
 
+/**
+ * Features with an action currently being worked — the dashboard's other way
+ * of qualifying as active besides a dated moment in the window.
+ *
+ * Keys on the literal `in-progress` id, the same way releases.ts keys on
+ * `done`: a status the vocabulary grows beyond these simply does not qualify,
+ * which errs toward showing less rather than guessing.
+ */
+export function inProgressFeatureIds(actions: readonly TrackerRecord[]): Set<string> {
+  const ids = new Set<string>()
+  for (const action of actions) {
+    if (statusOf(action) !== 'in-progress') continue
+    const featureId = String(action.fields.featureId ?? '')
+    if (featureId) ids.add(featureId)
+  }
+  return ids
+}
+
 export function actionsForFeature(
   actions: readonly TrackerRecord[],
   featureId: string,

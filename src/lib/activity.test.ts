@@ -50,15 +50,15 @@ describe('recentActivity', () => {
   })
 
   it('includes the oldest day in the window', () => {
-    // 14 days inclusive reaches back 13 days, so the window is 08-02..08-15.
+    // 21 days inclusive reaches back 20 days, so the window is 07-26..08-15.
     expect(
-      recentActivity([action({ featureId: 'f1', raisedOn: '2026-08-02' })], TODAY),
+      recentActivity([action({ featureId: 'f1', raisedOn: '2026-07-26' })], TODAY),
     ).toHaveLength(1)
   })
 
   it('excludes the day before the window opens', () => {
     expect(
-      recentActivity([action({ featureId: 'f1', raisedOn: '2026-08-01' })], TODAY),
+      recentActivity([action({ featureId: 'f1', raisedOn: '2026-07-25' })], TODAY),
     ).toEqual([])
   })
 

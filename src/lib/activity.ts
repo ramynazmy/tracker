@@ -15,7 +15,11 @@
 import type { TrackerRecord } from '../sheets/rows'
 import { buildTimeline, type TimelineEntry } from './timeline'
 
-export const ACTIVE_WINDOW_DAYS = 14
+// Three weeks: the dashboard's definition of "recently". Widened from 14 when
+// the dashboard became an active-work view — features fall off it entirely
+// once they leave this window, so it matches a management-reporting cadence
+// rather than a sprint.
+export const ACTIVE_WINDOW_DAYS = 21
 
 /** Shift an ISO date by whole days, in UTC like every other date here. */
 export function shiftDays(iso: string, days: number): string {

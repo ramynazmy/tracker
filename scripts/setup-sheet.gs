@@ -38,6 +38,10 @@ var FEATURES_HEADERS = HOUSEKEEPING.concat([
   'asdStatus',
   'owner',
   'notes',
+  // Appended AFTER notes, never inserted: writeHeaders rewrites row 1 in this
+  // order while the data stays put, so inserting mid-list would shear every
+  // later column off its data.
+  'trackedByManagement',
 ])
 
 var ACTIONS_HEADERS = HOUSEKEEPING.concat([
