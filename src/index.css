@@ -54,6 +54,15 @@
   --ok-line: #b8dcc0;
   --warn-bg: #fdf5e6;
   --warn-line: #e8d09a;
+  /**
+   * The due-date traffic light, as TEXT colours — much deeper than the ok/warn
+   * fills above because these carry small text on white and need to clear
+   * 4.5:1. `--due-late` is the same red the form errors already use, so "this
+   * is wrong" stays one colour across the app.
+   */
+  --due-late: #d4463c;
+  --due-open: #946300;
+  --due-done: #1a7f37;
 
   /* Light regardless of the OS setting — see the note below. */
   color-scheme: light;
@@ -985,8 +994,8 @@ a.stat:hover {
 }
 
 .tl__dot--overdue {
-  background: var(--warn-line);
-  border-color: var(--warn-line);
+  background: var(--due-late);
+  border-color: var(--due-late);
 }
 
 .tl__body {
@@ -1005,13 +1014,48 @@ a.stat:hover {
   margin-right: 0.15rem;
 }
 
+/* Every use of this flag means "overdue", so it wears the late red — the
+   words still carry the state on their own, per the rule above. */
 .tl__flag {
   margin-left: 0.5rem;
   padding: 0.05rem 0.4rem;
   border-radius: 999px;
-  border: 1px solid var(--warn-line);
-  background: var(--warn-bg);
+  border: 1px solid color-mix(in srgb, var(--due-late) 45%, #fff);
+  background: color-mix(in srgb, var(--due-late) 8%, #fff);
+  color: var(--due-late);
   font-size: 0.72rem;
+}
+
+/**
+ * The due-date traffic light: red = missed and still open, yellow = due and
+ * open, green = closed. Only OUR actions wear it — an event carries no tone,
+ * because the colours answer "are we on time" and that question means nothing
+ * on somebody else's milestone. `.due--*` lands on table cells; the
+ * `.tl__item` forms sit after the future-entry rule on purpose, so a toned
+ * date beats the muted future treatment at equal specificity.
+ */
+.due--late {
+  color: var(--due-late);
+}
+
+.due--open {
+  color: var(--due-open);
+}
+
+.due--done {
+  color: var(--due-done);
+}
+
+.tl__item .tl__date--late {
+  color: var(--due-late);
+}
+
+.tl__item .tl__date--open {
+  color: var(--due-open);
+}
+
+.tl__item .tl__date--done {
+  color: var(--due-done);
 }
 
 .tl__meta {

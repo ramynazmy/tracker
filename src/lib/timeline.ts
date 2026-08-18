@@ -1,5 +1,5 @@
 /**
- * The timeline: what has happened and what is coming, in date order.
+ * The timeline: what has happened and what is coming, newest first.
  *
  * Built entirely from actions, because actions are where the dates live. An
  * action contributes up to two entries — the day it was raised, and the day it
@@ -35,7 +35,8 @@ function isoOf(value: unknown): string | null {
 }
 
 /**
- * Every dated moment across these actions, oldest first.
+ * Every dated moment across these actions, newest first — what just happened
+ * and what is due next sit at the top, the deep past scrolls away below.
  *
  * Malformed dates are skipped rather than guessed at — the source workbook
  * contains a due date typed `1508/2026`, and inventing a position for it on a
@@ -75,12 +76,12 @@ export function buildTimeline(
     }
   }
 
-  // ISO dates sort correctly as strings. Raised before due on the same day,
-  // because something is raised before it can fall due — spelled out rather
-  // than left to localeCompare, which would put "due" first alphabetically.
+  // ISO dates sort correctly as strings; reversed, so newest lands on top.
+  // The same-day tiebreak reverses with it — due above raised, because
+  // something is raised before it falls due, and this list reads bottom-up.
   const order: Record<EntryKind, number> = { raised: 0, due: 1 }
   return entries.sort(
-    (a, b) => a.date.localeCompare(b.date) || order[a.kind] - order[b.kind],
+    (a, b) => b.date.localeCompare(a.date) || order[b.kind] - order[a.kind],
   )
 }
 

@@ -45,6 +45,11 @@ interface Props {
   derived?: readonly DerivedColumn[]
   /** Makes the first cell a link to the record's own page. */
   rowHref?: (record: TrackerRecord) => string
+  /**
+   * Extra class for one cell — how the actions tables tint a due date by its
+   * state without this component knowing what a due date is.
+   */
+  cellClass?: (record: TrackerRecord, field: Field) => string | undefined
   /** False for viewers: the column is omitted, not merely disabled. */
   canWrite: boolean
   onEdit: (record: TrackerRecord) => void
@@ -59,6 +64,7 @@ export default function EntityTable({
   linkLabels,
   derived = [],
   rowHref,
+  cellClass,
   canWrite,
   onEdit,
   onDelete,
@@ -162,17 +168,23 @@ export default function EntityTable({
             <tbody>
               {visible.map((record) => (
                 <tr key={record.id}>
-                  {columns.map((field, position) => (
-                    <td key={field.key} className={`cell cell--${field.type}`}>
-                      {position === 0 && rowHref ? (
-                        <Link to={rowHref(record)}>
-                          {renderCell(record.fields[field.key] ?? null, field, vocabularies, linkLabels)}
-                        </Link>
-                      ) : (
-                        renderCell(record.fields[field.key] ?? null, field, vocabularies, linkLabels)
-                      )}
-                    </td>
-                  ))}
+                  {columns.map((field, position) => {
+                    const extra = cellClass?.(record, field)
+                    return (
+                      <td
+                        key={field.key}
+                        className={`cell cell--${field.type}${extra ? ` ${extra}` : ''}`}
+                      >
+                        {position === 0 && rowHref ? (
+                          <Link to={rowHref(record)}>
+                            {renderCell(record.fields[field.key] ?? null, field, vocabularies, linkLabels)}
+                          </Link>
+                        ) : (
+                          renderCell(record.fields[field.key] ?? null, field, vocabularies, linkLabels)
+                        )}
+                      </td>
+                    )
+                  })}
                   {derived.map((column) => (
                     <td key={column.key} className="cell cell--number">
                       {renderPlain(column.value(record))}

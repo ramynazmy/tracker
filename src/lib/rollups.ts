@@ -132,6 +132,32 @@ export function daysOverdue(action: TrackerRecord, today: Date): number | null {
   return days > 0 ? days : null
 }
 
+export type DueTone = 'late' | 'open' | 'done'
+
+/**
+ * How an action's due date should read at a glance, everywhere one is shown:
+ * `late` (red) — past due and still open; `open` (yellow) — due but not yet
+ * missed; `done` (green) — closed, the date no longer asks for anything.
+ *
+ * Null means "no colour": an event — work someone else performs — is context,
+ * and a traffic light on somebody else's milestone would say we owe it. Also
+ * null for a blank or malformed date, which has nothing to be on time for.
+ *
+ * Due today is `open`, not `late`, matching daysOverdue and the timeline: the
+ * day is not over.
+ */
+export function dueTone(
+  action: TrackerRecord,
+  todayIso: string,
+  owned: ReadonlySet<string>,
+): DueTone | null {
+  if (!isOwnedAction(action, owned)) return null
+  const due = String(action.fields.dueDate ?? '').trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(due)) return null
+  if (!isOpenAction(action)) return 'done'
+  return due < todayIso ? 'late' : 'open'
+}
+
 /** Counts by a field's value, for the deferred dashboard. */
 export function countBy(
   records: readonly TrackerRecord[],

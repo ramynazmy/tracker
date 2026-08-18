@@ -11,7 +11,7 @@ import { useEntityEditor } from '../hooks/useEntityEditor'
 import { canWriteRecords } from '../lib/permissions'
 import { downloadCsv } from '../lib/csv'
 import { applyFilters, filterableFields } from '../lib/filters'
-import { daysOverdue, isOpenAction, isOwnedAction, orphanActions } from '../lib/rollups'
+import { daysOverdue, dueTone, isOpenAction, isOwnedAction, orphanActions } from '../lib/rollups'
 
 const FEATURE = entities.feature
 const ACTION = entities.action
@@ -66,6 +66,8 @@ export default function Actions() {
   if (state.status !== 'ready') return null
   const canWrite = canWriteRecords(state.user.role)
   const today = new Date()
+  // UTC, matching every other date comparison in the app.
+  const todayIso = today.toISOString().slice(0, 10)
 
   // A row someone else performs IS an event — same rule as every rollup — so
   // editing one reopens the event face of the form, not the action face.
@@ -165,6 +167,11 @@ export default function Actions() {
               value: (record) => daysOverdue(record, today),
             },
           ]}
+          cellClass={(record, field) => {
+            if (field.key !== 'dueDate') return undefined
+            const tone = dueTone(record, todayIso, ownedActors)
+            return tone ? `due--${tone}` : undefined
+          }}
           canWrite={canWrite}
           onEdit={(record) => editor.setEditing({ mode: 'edit', record })}
           onDelete={(record) => void editor.destroy(record)}

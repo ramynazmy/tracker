@@ -5,7 +5,7 @@ import EntityFilters, { useEntityFilters } from '../components/EntityFilters'
 import LoadError from '../components/LoadError'
 import { useTracker } from '../data/TrackerDataContext'
 import { applyFilters } from '../lib/filters'
-import { isOwnedAction } from '../lib/rollups'
+import { dueTone, isOwnedAction } from '../lib/rollups'
 import { buildTimeline, groupByMonth, monthLabel } from '../lib/timeline'
 import { labelFor } from '../sheets/lists'
 import type { TrackerRecord } from '../sheets/rows'
@@ -146,12 +146,18 @@ export default function Timeline() {
                 // a blank status counts as open.
                 const ours = isOwnedAction(entry.action, ownedActors)
                 const overdue = entry.overdue && ours
+                // Only a DUE date wears a traffic light; a raised date states
+                // history and an event stays in plain ink.
+                const tone = entry.kind === 'due' ? dueTone(entry.action, today, ownedActors) : null
                 return (
                 <li
                   key={entry.key}
                   className={`tl__item${entry.past ? '' : ' tl__item--future'}`}
                 >
-                  <time className="tl__date" dateTime={entry.date}>
+                  <time
+                    className={`tl__date${tone ? ` tl__date--${tone}` : ''}`}
+                    dateTime={entry.date}
+                  >
                     {entry.date}
                   </time>
                   {/* Shape carries past-vs-future, not colour alone. */}

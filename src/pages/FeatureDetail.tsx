@@ -9,7 +9,7 @@ import { actionFormFields, entities, type ActionVariant } from '../config/schema
 import { useTracker } from '../data/TrackerDataContext'
 import { useEntityEditor } from '../hooks/useEntityEditor'
 import { canWriteRecords } from '../lib/permissions'
-import { actionsForFeature, isOpenAction, isOwnedAction } from '../lib/rollups'
+import { actionsForFeature, dueTone, isOpenAction, isOwnedAction } from '../lib/rollups'
 import { labelFor } from '../sheets/lists'
 
 const FEATURE = entities.feature
@@ -34,6 +34,8 @@ export default function FeatureDetail() {
 
   if (state.status !== 'ready') return null
   const canWrite = canWriteRecords(state.user.role)
+  // UTC, matching every other date comparison in the app.
+  const todayIso = new Date().toISOString().slice(0, 10)
 
   if (error) {
     return (
@@ -157,6 +159,11 @@ export default function FeatureDetail() {
         records={own}
         vocabularies={vocabularies}
         linkLabels={featureNames}
+        cellClass={(record, field) => {
+          if (field.key !== 'dueDate') return undefined
+          const tone = dueTone(record, todayIso, ownedActors)
+          return tone ? `due--${tone}` : undefined
+        }}
         canWrite={canWrite}
         onEdit={(record) => editor.setEditing({ mode: 'edit', record })}
         onDelete={(record) => void editor.destroy(record)}

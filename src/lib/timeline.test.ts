@@ -24,28 +24,28 @@ describe('buildTimeline', () => {
       [action({ raisedOn: '2026-08-01', dueDate: '2026-08-20' })],
       TODAY,
     )
-    expect(entries.map((e) => e.kind)).toEqual(['raised', 'due'])
+    expect(entries.map((e) => e.kind)).toEqual(['due', 'raised'])
   })
 
   it('yields nothing for an action with no dates', () => {
     expect(buildTimeline([action({ name: 'undated' })], TODAY)).toEqual([])
   })
 
-  it('sorts oldest first', () => {
+  it('sorts newest first', () => {
     const entries = buildTimeline(
-      [action({ raisedOn: '2026-09-01' }), action({ raisedOn: '2026-07-01' })],
+      [action({ raisedOn: '2026-07-01' }), action({ raisedOn: '2026-09-01' })],
       TODAY,
     )
-    expect(entries.map((e) => e.date)).toEqual(['2026-07-01', '2026-09-01'])
+    expect(entries.map((e) => e.date)).toEqual(['2026-09-01', '2026-07-01'])
   })
 
-  it('puts raised before due on the same day', () => {
-    // Something is raised before it can fall due.
+  it('puts due above raised on the same day', () => {
+    // Something is raised before it falls due, and the list reads bottom-up.
     const entries = buildTimeline(
       [action({ raisedOn: '2026-08-10', dueDate: '2026-08-10' })],
       TODAY,
     )
-    expect(entries.map((e) => e.kind)).toEqual(['raised', 'due'])
+    expect(entries.map((e) => e.kind)).toEqual(['due', 'raised'])
   })
 
   it('treats today as past, so today’s entries render as reached', () => {
@@ -98,7 +98,7 @@ describe('buildTimeline', () => {
 })
 
 describe('groupByMonth', () => {
-  it('groups entries into their months in order', () => {
+  it('groups entries into their months, newest month first', () => {
     const months = groupByMonth(
       buildTimeline(
         [
@@ -109,8 +109,8 @@ describe('groupByMonth', () => {
         TODAY,
       ),
     )
-    expect(months.map((m) => m.month)).toEqual(['2026-07', '2026-08'])
-    expect(months[1]!.entries).toHaveLength(2)
+    expect(months.map((m) => m.month)).toEqual(['2026-08', '2026-07'])
+    expect(months[0]!.entries).toHaveLength(2)
   })
 
   it('returns nothing for no entries', () => {

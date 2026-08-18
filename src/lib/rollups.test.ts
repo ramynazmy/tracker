@@ -4,6 +4,7 @@ import {
   countBy,
   countOpenActionsByFeature,
   daysOverdue,
+  dueTone,
   inProgressFeatureIds,
   isOpenAction,
   isOwnedAction,
@@ -216,6 +217,42 @@ describe('daysOverdue', () => {
     const earlyInDay = new Date('2026-08-15T00:00:01Z')
     const overdue = action({ status: 'open', dueDate: '2026-08-14' })
     expect(daysOverdue(overdue, lateInDay)).toBe(daysOverdue(overdue, earlyInDay))
+  })
+})
+
+describe('dueTone', () => {
+  const TODAY = '2026-08-15'
+
+  it('is late for an open action past its due date', () => {
+    expect(dueTone(action({ dueDate: '2026-08-01', status: 'open' }), TODAY, OURS)).toBe('late')
+  })
+
+  it('is open for an action due in the future', () => {
+    expect(dueTone(action({ dueDate: '2026-08-20', status: 'open' }), TODAY, OURS)).toBe('open')
+  })
+
+  it('treats due today as still open, not late — the day is not over', () => {
+    expect(dueTone(action({ dueDate: TODAY, status: 'open' }), TODAY, OURS)).toBe('open')
+  })
+
+  it('is done once the action is closed, however old the date', () => {
+    expect(dueTone(action({ dueDate: '2026-08-01', status: 'done' }), TODAY, OURS)).toBe('done')
+    expect(dueTone(action({ dueDate: '2026-08-01', status: 'cancelled' }), TODAY, OURS)).toBe(
+      'done',
+    )
+  })
+
+  it('carries no tone on an event — someone else performs it', () => {
+    expect(dueTone(action({ dueDate: '2026-08-01', actor: 'vendor' }), TODAY, OURS)).toBeNull()
+  })
+
+  it('treats a blank actor as ours, like every rollup', () => {
+    expect(dueTone(action({ dueDate: '2026-08-01', status: 'open' }), TODAY, OURS)).toBe('late')
+  })
+
+  it('carries no tone without a well-formed due date', () => {
+    expect(dueTone(action({ status: 'open' }), TODAY, OURS)).toBeNull()
+    expect(dueTone(action({ dueDate: '1508/2026', status: 'open' }), TODAY, OURS)).toBeNull()
   })
 })
 

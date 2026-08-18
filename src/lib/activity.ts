@@ -56,12 +56,12 @@ export function recentActivity(
 
     const existing = byFeature.get(featureId)
     if (!existing) {
+      // buildTimeline returns newest first, so the first entry seen for a
+      // feature IS its latest; everything after only raises the count.
       byFeature.set(featureId, { featureId, latest: entry, count: 1 })
       continue
     }
     existing.count += 1
-    // buildTimeline returns oldest first, so a later entry always wins.
-    existing.latest = entry
   }
 
   return [...byFeature.values()].sort(
