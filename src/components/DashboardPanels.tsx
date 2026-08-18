@@ -22,6 +22,8 @@ export interface ChannelView {
   id: string
   releases: ReleaseGroup[]
   active: FeatureActivity[]
+  /** The channel's most recent dated moment inside the window, if any. */
+  latest?: string
 }
 
 /**
@@ -58,7 +60,57 @@ export function buildChannelView(
     byChannel.get(channel)?.active.push(item)
   }
 
-  return [...byChannel.entries()].map(([id, value]) => ({ id, ...value }))
+  const channels: ChannelView[] = [...byChannel.entries()].map(([id, value]) => ({
+    id,
+    ...value,
+    // `recentActivity` returns most-recent first, so the head of the list IS
+    // the channel's latest moment.
+    latest: value.active[0]?.latest.date,
+  }))
+
+  // Busiest first: the channel that moved most recently leads the page, so the
+  // card order itself says where the attention is. Quiet channels keep their
+  // vocabulary order after the active ones — stable sort, undated last.
+  return channels.sort((a, b) => (b.latest ?? '').localeCompare(a.latest ?? ''))
+}
+
+/**
+ * The banner both dashboards lead with: percent complete, its basis in words,
+ * the meter, and the moved-recently pill. One component so the two pages can
+ * never drift apart visually — they differ only in the slice behind the
+ * numbers, which the `noun` spells out ("features" vs "tracked features").
+ */
+export function Hero({
+  done,
+  total,
+  noun,
+  moved,
+}: {
+  done: number
+  total: number
+  /** What the numbers count, e.g. "features" or "tracked features". */
+  noun: string
+  /** Features with a dated moment in the window; 0 hides the pill. */
+  moved: number
+}) {
+  const percent = total === 0 ? 0 : Math.round((done / total) * 100)
+  return (
+    <div className="hero">
+      <p className="hero__value">{percent}%</p>
+      <p className="hero__label">
+        complete — {done} of {total} {noun} done
+      </p>
+      <div className="meter" role="img" aria-label={`${percent} percent complete`}>
+        <div className="meter__fill" style={{ width: `${percent}%` }} />
+      </div>
+      {moved > 0 && (
+        <p className="hero__live">
+          {moved} {moved === 1 ? 'feature has' : 'features have'} moved in the last{' '}
+          {ACTIVE_WINDOW_DAYS} days
+        </p>
+      )}
+    </div>
+  )
 }
 
 /**
@@ -81,11 +133,14 @@ export function ChannelCard({
   channelId,
   releases,
   active,
+  latest,
   vocabularies,
 }: {
   channelId: string
   releases: ReleaseGroup[]
   active: FeatureActivity[]
+  /** Most recent dated moment in the channel — an action starting, an event. */
+  latest?: string
   vocabularies: Vocabularies
 }) {
   const total = releases.reduce((n, r) => n + r.total, 0)
@@ -107,6 +162,10 @@ export function ChannelCard({
         </h3>
         <span className="muted">
           {total} {total === 1 ? 'feature' : 'features'} · {percent}%
+          {/* The card wears its own recency, which is also its sort key — the
+              page orders channels by this date, so saying it keeps the order
+              legible rather than mysterious. */}
+          {latest && <> · moved {shortDate(latest)}</>}
         </span>
       </header>
 

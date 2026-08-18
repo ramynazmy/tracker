@@ -4,6 +4,7 @@ import LoadError from '../components/LoadError'
 import {
   Breakdown,
   ChannelCard,
+  Hero,
   Stat,
   buildChannelView,
 } from '../components/DashboardPanels'
@@ -65,11 +66,15 @@ export default function Management() {
     }
   }, [tracked, actions, ownedActors])
 
-  const percent = stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100)
-
   const channels = useMemo(
     () => buildChannelView(tracked, actions, ownedActors, vocabularies, today),
     [tracked, actions, ownedActors, vocabularies, today],
+  )
+
+  // Same derivation as the dashboard's pill: the sum of what the cards show.
+  const movedTotal = useMemo(
+    () => channels.reduce((n, c) => n + c.active.length, 0),
+    [channels],
   )
 
   if (error) {
@@ -102,15 +107,14 @@ export default function Management() {
         </div>
       ) : (
         <>
-          <div className="hero">
-            <p className="hero__value">{percent}%</p>
-            <p className="hero__label">
-              complete — {stats.done} of {stats.total} tracked features done
-            </p>
-            <div className="meter" role="img" aria-label={`${percent} percent complete`}>
-              <div className="meter__fill" style={{ width: `${percent}%` }} />
-            </div>
-          </div>
+          {/* The same banner as the Dashboard — shared component, different
+              slice, and the noun says which. */}
+          <Hero
+            done={stats.done}
+            total={stats.total}
+            noun="tracked features"
+            moved={movedTotal}
+          />
 
           <div className="kpis">
             <Stat label="Tracked features" value={stats.total} />
@@ -130,6 +134,7 @@ export default function Management() {
                 channelId={channel.id}
                 releases={channel.releases}
                 active={channel.active}
+                latest={channel.latest}
                 vocabularies={vocabularies}
               />
             ))}

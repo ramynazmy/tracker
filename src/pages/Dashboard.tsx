@@ -3,6 +3,7 @@ import LoadError from '../components/LoadError'
 import {
   Breakdown,
   ChannelCard,
+  Hero,
   Stat,
   buildChannelView,
 } from '../components/DashboardPanels'
@@ -43,20 +44,19 @@ export default function Dashboard() {
   const today = new Date().toISOString().slice(0, 10)
 
   /**
-   * The features this page is about. Three gates, all deliberate:
-   *  - not-started features are backlog ("just in plan") and never shown;
-   *  - a dated moment in the last ACTIVE_WINDOW_DAYS qualifies (events
-   *    included — a milestone landing is movement);
+   * The features this page is about — anything MOVING, and nothing else:
+   *  - a dated moment in the last ACTIVE_WINDOW_DAYS qualifies, events
+   *    included and regardless of the feature's own status — a milestone
+   *    landing on a still-planned feature is exactly the movement to surface;
    *  - an action in progress qualifies even with no recent date, so slow
    *    work being actively done does not fall off the board.
+   * A not-started feature with neither is backlog ("just in plan") and stays
+   * off — not by a status gate, but because nothing about it is moving.
    */
   const active = useMemo(() => {
     const moved = new Set(recentActivity(actions, today).map((a) => a.featureId))
     const working = inProgressFeatureIds(actions)
-    return features.filter((f) => {
-      if (String(f.fields.status ?? '') === 'not-started') return false
-      return moved.has(f.id) || working.has(f.id)
-    })
+    return features.filter((f) => moved.has(f.id) || working.has(f.id))
   }, [features, actions, today])
 
   const stats = useMemo(() => {
@@ -81,13 +81,6 @@ export default function Dashboard() {
       overdue: open.filter((a) => daysOverdue(a, now) !== null).length,
     }
   }, [features, active, actions, ownedActors])
-
-  // Programme-wide on purpose, unlike everything below it: "percent complete"
-  // over only the active slice would hover near zero forever, because a done
-  // feature stops being active. The sentence states its own basis, so the two
-  // scopes cannot be confused.
-  const percent =
-    stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100)
 
   // Actions belonging to the features on show, for the by-type breakdown.
   const activeActions = useMemo(() => {
@@ -129,22 +122,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Hero: the one number the view leads with. Exactly one per page. */}
-      <div className="hero">
-        <p className="hero__value">{percent}%</p>
-        <p className="hero__label">
-          complete — {stats.done} of {stats.total} features done
-        </p>
-        <div className="meter" role="img" aria-label={`${percent} percent complete`}>
-          <div className="meter__fill" style={{ width: `${percent}%` }} />
-        </div>
-        {activeTotal > 0 && (
-          <p className="hero__live">
-            {activeTotal} {activeTotal === 1 ? 'feature has' : 'features have'} moved in the last{' '}
-            {ACTIVE_WINDOW_DAYS} days
-          </p>
-        )}
-      </div>
+      {/* Hero: the one number the view leads with. Exactly one per page.
+          Programme-wide on purpose, unlike everything below it: "percent
+          complete" over only the active slice would hover near zero forever,
+          because a done feature stops being active. The sentence states its
+          own basis, so the two scopes cannot be confused. */}
+      <Hero done={stats.done} total={stats.total} noun="features" moved={activeTotal} />
 
       <div className="kpis">
         <Stat label="Active features" value={stats.active} />
@@ -168,6 +151,7 @@ export default function Dashboard() {
               channelId={channel.id}
               releases={channel.releases}
               active={channel.active}
+              latest={channel.latest}
               vocabularies={vocabularies}
             />
           ))}

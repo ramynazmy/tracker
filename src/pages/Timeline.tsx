@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { entities, type Field } from '../config/schema'
 import EntityFilters, { useEntityFilters } from '../components/EntityFilters'
 import LoadError from '../components/LoadError'
@@ -35,10 +35,20 @@ export default function Timeline() {
     useTracker()
   const filters = useEntityFilters(ALL_FILTERS)
 
+  // A single feature's chronology, linked from its detail page. A search
+  // param rather than a route so the rest of the page — filters, grouping,
+  // rendering — is exactly the shared timeline, not a second one.
+  const [params, setParams] = useSearchParams()
+  const featureId = params.get('feature') ?? ''
+  const featureName = featureId ? featureNames.get(featureId) : undefined
+
   const today = todayIso()
 
   const months = useMemo(() => {
     const featureValues = new Map(features.map((f) => [f.id, f.fields]))
+    const all = featureId
+      ? actions.filter((a) => String(a.fields.featureId ?? '') === featureId)
+      : actions
 
     // A feature-level filter has to reach through the action's link, so this
     // is a join rather than a field match — which is why applyFilters, which
@@ -49,7 +59,7 @@ export default function Timeline() {
     })
     const allowed = new Set(featureFiltered.map((f) => f.id))
 
-    const scoped = actions.filter((a) => {
+    const scoped = all.filter((a) => {
       const featureId = String(a.fields.featureId ?? '')
       // An action with no resolvable feature can't answer a feature-level
       // question; only show it when no such filter is applied.
@@ -65,7 +75,7 @@ export default function Timeline() {
     })
 
     return groupByMonth(buildTimeline(byAction, today))
-  }, [features, actions, filters.values, today])
+  }, [features, actions, featureId, filters.values, today])
 
   const total = months.reduce((n, m) => n + m.entries.length, 0)
 
@@ -88,6 +98,29 @@ export default function Timeline() {
           </p>
         </div>
       </div>
+
+      {featureId && (
+        <div className="card">
+          <strong>
+            Timeline of{' '}
+            {featureName ? (
+              <Link to={`/features/${encodeURIComponent(featureId)}`}>{featureName}</Link>
+            ) : (
+              'a feature no longer in the sheet'
+            )}
+          </strong>{' '}
+          <button
+            className="btn btn--link"
+            onClick={() => {
+              const next = new URLSearchParams(params)
+              next.delete('feature')
+              setParams(next, { replace: true })
+            }}
+          >
+            Show the full timeline
+          </button>
+        </div>
+      )}
 
       <EntityFilters
         fields={ALL_FILTERS}

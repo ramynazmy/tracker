@@ -81,8 +81,15 @@ export default function FeatureDetail() {
             {own.length} action{own.length === 1 ? '' : 's'} · {openCount} open
           </p>
         </div>
-        {canWrite && (
-          <div className="row row--tight">
+        <div className="row row--tight">
+          {/* A link, not a button: it navigates, so middle-click and
+              copy-link-address must keep working. Outside the canWrite guard —
+              reading a chronology is not a write. */}
+          <Link className="btn" to={`/timeline?feature=${encodeURIComponent(featureId)}`}>
+            Timeline
+          </Link>
+          {canWrite && (
+            <>
             <button
               className="btn"
               onClick={() => featureEditor.setEditing({ mode: 'edit', record: feature })}
@@ -111,8 +118,9 @@ export default function FeatureDetail() {
             >
               New action
             </button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       <dl className="detail-grid">
