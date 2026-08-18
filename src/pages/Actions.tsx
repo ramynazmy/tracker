@@ -5,7 +5,7 @@ import EntityFilters, { useEntityFilters } from '../components/EntityFilters'
 import EntityForm from '../components/EntityForm'
 import LoadError from '../components/LoadError'
 import Toast from '../components/Toast'
-import { entities } from '../config/schema'
+import { actionFormFields, entities, type ActionVariant } from '../config/schema'
 import { useTracker } from '../data/TrackerDataContext'
 import { useEntityEditor } from '../hooks/useEntityEditor'
 import { canWriteRecords } from '../lib/permissions'
@@ -38,6 +38,10 @@ export default function Actions() {
     refresh,
   } = useTracker()
   const editor = useEntityEditor(ACTION)
+  // Which face of the form a NEW row gets. An existing row derives it from its
+  // actor instead — see `variant` below — so this only matters between
+  // pressing "New action"/"New event" and saving.
+  const [newVariant, setNewVariant] = useState<ActionVariant>('action')
   // Open-first by default: this page is the workbook's "Open Tasks" view, and
   // the whole point of that tab was what still needs doing.
   const [filter, setFilter] = useState<Filter>('open')
@@ -62,6 +66,15 @@ export default function Actions() {
   if (state.status !== 'ready') return null
   const canWrite = canWriteRecords(state.user.role)
   const today = new Date()
+
+  // A row someone else performs IS an event — same rule as every rollup — so
+  // editing one reopens the event face of the form, not the action face.
+  const variant: ActionVariant =
+    editor.editing?.mode === 'edit'
+      ? isOwnedAction(editor.editing.record, ownedActors)
+        ? 'action'
+        : 'event'
+      : newVariant
 
   return (
     <section>
@@ -91,9 +104,26 @@ export default function Actions() {
             {loading ? 'Refreshing…' : 'Refresh'}
           </button>
           {canWrite && features.length > 0 && (
-            <button className="btn btn--primary" onClick={() => editor.setEditing({ mode: 'new' })}>
-              New action
-            </button>
+            <>
+              <button
+                className="btn"
+                onClick={() => {
+                  setNewVariant('event')
+                  editor.setEditing({ mode: 'new' })
+                }}
+              >
+                New event
+              </button>
+              <button
+                className="btn btn--primary"
+                onClick={() => {
+                  setNewVariant('action')
+                  editor.setEditing({ mode: 'new' })
+                }}
+              >
+                New action
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -148,6 +178,8 @@ export default function Actions() {
         <EntityForm
           entity={ACTION}
           record={editor.editing.mode === 'edit' ? editor.editing.record : undefined}
+          fields={actionFormFields(variant)}
+          title={`${editor.editing.mode === 'edit' ? 'Edit' : 'New'} ${variant}`}
           vocabularies={vocabularies}
           linkChoices={{
             featureId: features.map((f) => ({

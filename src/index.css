@@ -581,6 +581,20 @@ textarea.input {
   font-family: inherit;
 }
 
+/* A due date entered either as a date or as "in N days" — one line, the date
+   picker keeps most of the width, the day count stays a short box. */
+.field__days {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.field .field__days-count {
+  width: 5.5rem;
+  max-width: 5.5rem;
+}
+
 /* --- users admin -------------------------------------------------------- */
 
 .steps {

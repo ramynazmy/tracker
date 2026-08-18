@@ -5,6 +5,7 @@ import EntityFilters, { useEntityFilters } from '../components/EntityFilters'
 import LoadError from '../components/LoadError'
 import { useTracker } from '../data/TrackerDataContext'
 import { applyFilters } from '../lib/filters'
+import { isOwnedAction } from '../lib/rollups'
 import { buildTimeline, groupByMonth, monthLabel } from '../lib/timeline'
 import { labelFor } from '../sheets/lists'
 import type { TrackerRecord } from '../sheets/rows'
@@ -30,7 +31,8 @@ function todayIso(): string {
 }
 
 export default function Timeline() {
-  const { features, actions, vocabularies, featureNames, loading, error, loadedAt } = useTracker()
+  const { features, actions, vocabularies, featureNames, ownedActors, loading, error, loadedAt } =
+    useTracker()
   const filters = useEntityFilters(ALL_FILTERS)
 
   const today = todayIso()
@@ -97,14 +99,21 @@ export default function Timeline() {
 
       {total === 0 ? (
         <p className="muted">
-          Nothing dated to show. Actions need a Raised On or Due date to appear here.
+          Nothing dated to show. Actions need a Start or Due date to appear here.
         </p>
       ) : (
         months.map((month) => (
           <div key={month.month} className="tl-month">
             <h2 className="tl-month__label">{monthLabel(month.month)}</h2>
             <ol className="tl">
-              {month.entries.map((entry) => (
+              {month.entries.map((entry) => {
+                // "Overdue" is a statement about work WE owe. An event —
+                // somebody else's milestone, saved with no status — would
+                // otherwise read as overdue the day after it happens, because
+                // a blank status counts as open.
+                const ours = isOwnedAction(entry.action, ownedActors)
+                const overdue = entry.overdue && ours
+                return (
                 <li
                   key={entry.key}
                   className={`tl__item${entry.past ? '' : ' tl__item--future'}`}
@@ -115,18 +124,18 @@ export default function Timeline() {
                   {/* Shape carries past-vs-future, not colour alone. */}
                   <span
                     className={`tl__dot${entry.past ? '' : ' tl__dot--hollow'}${
-                      entry.overdue ? ' tl__dot--overdue' : ''
+                      overdue ? ' tl__dot--overdue' : ''
                     }`}
                     aria-hidden
                   />
                   <div className="tl__body">
                     <p className="tl__title">
                       <span className="tl__kind">
-                        {entry.kind === 'raised' ? 'Raised' : 'Due'}
+                        {!ours ? 'Event' : entry.kind === 'raised' ? 'Started' : 'Due'}
                       </span>{' '}
                       {String(entry.action.fields[ACTION.titleField] ?? '(untitled)')}
                       {/* Never colour alone: overdue says so in words. */}
-                      {entry.overdue && <span className="tl__flag">overdue</span>}
+                      {overdue && <span className="tl__flag">overdue</span>}
                     </p>
                     <p className="tl__meta muted">
                       <FeatureLink action={entry.action} featureNames={featureNames} />
@@ -140,7 +149,8 @@ export default function Timeline() {
                     </p>
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ol>
           </div>
         ))

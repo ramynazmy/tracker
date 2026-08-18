@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { ENTITY_LIST, HOUSEKEEPING_COLUMNS, entities, expectedHeaders, fieldOf } from './schema'
+import {
+  ENTITY_LIST,
+  HOUSEKEEPING_COLUMNS,
+  actionFormFields,
+  entities,
+  expectedHeaders,
+  fieldOf,
+} from './schema'
 
 /**
  * Structural checks on the schema itself.
@@ -57,6 +64,51 @@ describe.each(ENTITY_LIST)('$sheetName schema', (entity) => {
     const headers = expectedHeaders(entity)
     expect(headers.slice(0, HOUSEKEEPING_COLUMNS.length)).toEqual([...HOUSEKEEPING_COLUMNS])
     expect(new Set(headers).size).toBe(headers.length)
+  })
+})
+
+describe('actionFormFields', () => {
+  it('builds both variants from real action fields only', () => {
+    // A variant is a view over the schema, not a second one: a key with no
+    // backing field would render an input whose value can never reach the
+    // sheet.
+    for (const variant of ['action', 'event'] as const) {
+      for (const field of actionFormFields(variant)) {
+        expect(fieldOf(entities.action, field.key), `${variant}.${field.key}`).toBeDefined()
+      }
+    }
+  })
+
+  it('never shows the actor on the action variant', () => {
+    // Actions are always ours; a blank actor already means that.
+    expect(actionFormFields('action').map((f) => f.key)).not.toContain('actor')
+  })
+
+  it('requires an actor on the event variant', () => {
+    // Blank means "ours", which would turn the event into our workload in
+    // every rollup.
+    const actor = actionFormFields('event').find((f) => f.key === 'actor')
+    expect(actor?.required).toBe(true)
+  })
+
+  it('requires a date on the event variant', () => {
+    // An event is a moment on the timeline; undated it appears nowhere.
+    const when = actionFormFields('event').find((f) => f.key === 'dueDate')
+    expect(when?.required).toBe(true)
+  })
+
+  it('hides status and owner on the event variant', () => {
+    const keys = actionFormFields('event').map((f) => f.key)
+    expect(keys).not.toContain('status')
+    expect(keys).not.toContain('owner')
+    expect(keys).not.toContain('raisedOn')
+  })
+
+  it('counts action due-days from the start date', () => {
+    const due = actionFormFields('action').find((f) => f.key === 'dueDate')
+    expect(due?.daysFrom).toBe('raisedOn')
+    // …and that field really exists, or the form would count from nothing.
+    expect(fieldOf(entities.action, due!.daysFrom!)).toBeDefined()
   })
 })
 

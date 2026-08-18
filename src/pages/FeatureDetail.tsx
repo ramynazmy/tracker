@@ -1,15 +1,15 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import EntityTable from '../components/EntityTable'
 import EntityForm from '../components/EntityForm'
 import LoadError from '../components/LoadError'
 import Toast from '../components/Toast'
-import { entities } from '../config/schema'
+import { actionFormFields, entities, type ActionVariant } from '../config/schema'
 import { useTracker } from '../data/TrackerDataContext'
 import { useEntityEditor } from '../hooks/useEntityEditor'
 import { canWriteRecords } from '../lib/permissions'
-import { actionsForFeature, isOpenAction } from '../lib/rollups'
+import { actionsForFeature, isOpenAction, isOwnedAction } from '../lib/rollups'
 import { labelFor } from '../sheets/lists'
 
 const FEATURE = entities.feature
@@ -20,8 +20,14 @@ export default function FeatureDetail() {
   const featureId = decodeURIComponent(id)
 
   const { state } = useAuth()
-  const { features, actions, vocabularies, featureNames, loading, error } = useTracker()
+  const { features, actions, vocabularies, featureNames, ownedActors, loading, error } =
+    useTracker()
   const editor = useEntityEditor(ACTION)
+  // A second editor rather than a mode on the first: the two forms write
+  // different entities, and sharing one editor would point a save at the
+  // wrong tab.
+  const featureEditor = useEntityEditor(FEATURE)
+  const [newVariant, setNewVariant] = useState<ActionVariant>('action')
 
   const feature = features.find((f) => f.id === featureId)
   const own = useMemo(() => actionsForFeature(actions, featureId), [actions, featureId])
@@ -55,6 +61,14 @@ export default function FeatureDetail() {
 
   const openCount = own.filter(isOpenAction).length
 
+  // Same rule as every rollup: performed by someone else = event.
+  const variant: ActionVariant =
+    editor.editing?.mode === 'edit'
+      ? isOwnedAction(editor.editing.record, ownedActors)
+        ? 'action'
+        : 'event'
+      : newVariant
+
   return (
     <section>
       <div className="page-head">
@@ -70,12 +84,30 @@ export default function FeatureDetail() {
         {canWrite && (
           <div className="row row--tight">
             <button
+              className="btn"
+              onClick={() => featureEditor.setEditing({ mode: 'edit', record: feature })}
+            >
+              Edit feature
+            </button>
+            <button
+              className="btn"
+              onClick={() => {
+                setNewVariant('event')
+                editor.setEditing({ mode: 'new', locked: { featureId } })
+              }}
+            >
+              New event
+            </button>
+            <button
               className="btn btn--primary"
               // featureId is locked, not merely pre-filled: an action created
               // from this page belongs to this feature, and letting it be
               // changed here would silently move it somewhere the user cannot
               // see.
-              onClick={() => editor.setEditing({ mode: 'new', locked: { featureId } })}
+              onClick={() => {
+                setNewVariant('action')
+                editor.setEditing({ mode: 'new', locked: { featureId } })
+              }}
             >
               New action
             </button>
@@ -110,6 +142,7 @@ export default function FeatureDetail() {
 
       <h2>Actions</h2>
       <Toast message={editor.toast} onDismiss={() => editor.setToast(null)} />
+      <Toast message={featureEditor.toast} onDismiss={() => featureEditor.setToast(null)} />
 
       <EntityTable
         entity={ACTION}
@@ -122,10 +155,22 @@ export default function FeatureDetail() {
         emptyMessage="No actions raised against this feature."
       />
 
+      {featureEditor.editing?.mode === 'edit' && (
+        <EntityForm
+          entity={FEATURE}
+          record={featureEditor.editing.record}
+          vocabularies={vocabularies}
+          onCancel={featureEditor.cancel}
+          onSave={featureEditor.save}
+        />
+      )}
+
       {editor.editing && (
         <EntityForm
           entity={ACTION}
           record={editor.editing.mode === 'edit' ? editor.editing.record : undefined}
+          fields={actionFormFields(variant)}
+          title={`${editor.editing.mode === 'edit' ? 'Edit' : 'New'} ${variant}`}
           vocabularies={vocabularies}
           linkChoices={{
             featureId: features.map((f) => ({

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { EntitySchema, Field } from '../config/schema'
-import { hasErrors, validateRecord, type FieldErrors } from '../lib/validate'
+import { hasErrors, validateFields, type FieldErrors } from '../lib/validate'
 import { optionsFor, type Vocabularies } from '../sheets/lists'
 import type { CellValue, TrackerRecord } from '../sheets/rows'
 import { ConflictError } from '../sheets/collection'
@@ -10,6 +10,14 @@ interface Props {
   entity: EntitySchema
   /** Absent for a new record. */
   record?: TrackerRecord
+  /**
+   * The fields to show, when not the whole entity — e.g. the event variant of
+   * an action. Hidden fields keep the record's existing values on save; only
+   * the shown fields are validated, so a variant can drop a required field.
+   */
+  fields?: readonly Field[]
+  /** Dialog heading override, e.g. "New event" over "New action". */
+  title?: string
   vocabularies: Vocabularies
   /** Choices for `link` fields, keyed by field key. */
   linkChoices?: Record<string, readonly Choice[]>
@@ -32,12 +40,17 @@ function initialValues(
 export default function EntityForm({
   entity,
   record,
+  fields,
+  title,
   vocabularies,
   linkChoices,
   locked,
   onCancel,
   onSave,
 }: Props) {
+  const shown = fields ?? entity.fields
+  // Values still span ALL of the entity's fields: a variant that hides a field
+  // must carry its existing value through the save untouched, not blank it.
   const [values, setValues] = useState(() => initialValues(entity, record, locked))
   const [errors, setErrors] = useState<FieldErrors>({})
   const [saving, setSaving] = useState(false)
@@ -51,7 +64,7 @@ export default function EntityForm({
   }, [])
 
   async function submit(force = false) {
-    const found = validateRecord(entity, values)
+    const found = validateFields(shown, values)
     setErrors(found)
     if (hasErrors(found)) return
 
@@ -128,7 +141,8 @@ export default function EntityForm({
     <Backdrop onCancel={onCancel}>
       <div className="dialog" ref={dialog}>
         <h2>
-          {record ? `Edit ${entity.label.toLowerCase()}` : `New ${entity.label.toLowerCase()}`}
+          {title ??
+            (record ? `Edit ${entity.label.toLowerCase()}` : `New ${entity.label.toLowerCase()}`)}
         </h2>
 
         <form
@@ -137,7 +151,7 @@ export default function EntityForm({
             void submit()
           }}
         >
-          {entity.fields.map((field) => (
+          {shown.map((field) => (
             <FieldInput
               key={field.key}
               field={field}
@@ -145,6 +159,7 @@ export default function EntityForm({
               error={errors[field.key]}
               choices={choicesFor(field)}
               disabled={locked ? field.key in locked : false}
+              baseDate={field.daysFrom ? String(values[field.daysFrom] ?? '') : undefined}
               onChange={(value) => change(field, value)}
             />
           ))}

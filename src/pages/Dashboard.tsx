@@ -52,15 +52,22 @@ export default function Dashboard() {
   }, [features, actions, ownedActors])
 
   const channels = useMemo(() => {
+    // The cards show work in flight: a feature nobody has started yet is
+    // backlog, and listing it would bury the features that are actually
+    // moving. It still counts in the hero, the KPIs and the breakdowns —
+    // those are totals, and totals that quietly excluded the backlog would
+    // overstate progress.
+    const started = features.filter((f) => String(f.fields.status ?? '') !== 'not-started')
+
     const groups = sortGroups(
-      groupByRelease(features, actions, ownedActors, new Date()),
+      groupByRelease(started, actions, ownedActors, new Date()),
       vocabularyOf(vocabularies, 'channel').active.map((i) => i.id),
       vocabularyOf(vocabularies, 'release').active.map((i) => i.id),
     )
 
     const activity = recentActivity(actions, today)
     const featureChannel = new Map(
-      features.map((f) => [f.id, String(f.fields.channel ?? '')]),
+      started.map((f) => [f.id, String(f.fields.channel ?? '')]),
     )
 
     const byChannel = new Map<string, { releases: ReleaseGroup[]; active: FeatureActivity[] }>()

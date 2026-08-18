@@ -14,9 +14,21 @@ export function validateRecord(
   entity: EntitySchema,
   values: Record<string, CellValue>,
 ): FieldErrors {
+  return validateFields(entity.fields, values)
+}
+
+/**
+ * Validate against an explicit field list rather than the whole entity — a
+ * form variant (action vs event) shows a subset of the fields, possibly with
+ * its own `required` overrides, and must not fail on fields it never rendered.
+ */
+export function validateFields(
+  fields: readonly Field[],
+  values: Record<string, CellValue>,
+): FieldErrors {
   const errors: FieldErrors = {}
 
-  for (const field of entity.fields) {
+  for (const field of fields) {
     const error = validateField(values[field.key] ?? null, field)
     if (error) errors[field.key] = error
   }

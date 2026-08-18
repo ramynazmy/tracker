@@ -93,6 +93,12 @@ export interface Field {
   scopeBy?: string
   /** `link` only — which entity the stored UUID points at. */
   refEntity?: EntityKey
+  /**
+   * `date` only — the form also offers "in N days", counted from this field's
+   * value (or from today when it is blank). The stored value is a plain date
+   * either way; the sheet never sees a duration.
+   */
+  daysFrom?: string
 }
 
 export interface EntitySchema {
@@ -134,7 +140,7 @@ const actionFields: readonly Field[] = [
   { key: 'actor', label: 'Done by', type: 'reference', listKind: 'actor' },
   { key: 'owner', label: 'Owner', type: 'reference', listKind: 'owner' },
   { key: 'status', label: 'Status', type: 'reference', listKind: 'actionStatus', required: true },
-  { key: 'raisedOn', label: 'Raised On', type: 'date' },
+  { key: 'raisedOn', label: 'Start', type: 'date' },
   { key: 'dueDate', label: 'Due', type: 'date' },
   { key: 'notes', label: 'Notes', type: 'longtext', maxLength: 2000 },
 ]
@@ -169,4 +175,48 @@ export function expectedHeaders(entity: EntitySchema): readonly string[] {
 
 export function fieldOf(entity: EntitySchema, key: string): Field | undefined {
   return entity.fields.find((f) => f.key === key)
+}
+
+/**
+ * The two ways an Actions row is entered. Same entity, same tab, different
+ * form: an ACTION is work we do, so it carries an owner, a status and a
+ * start/due pair, and its actor stays blank (blank = ours). An EVENT is a
+ * moment on the timeline done by someone else — a delivery milestone, a vendor
+ * drop — so it is just a name, a date, who does it, and notes.
+ *
+ * A variant is a view over `actionFields`, not a second schema: hidden fields
+ * keep whatever value the record already holds, and the sheet row is identical
+ * either way.
+ */
+export type ActionVariant = 'action' | 'event'
+
+const VARIANT_FIELDS: Record<ActionVariant, readonly (readonly [string, Partial<Field>])[]> = {
+  action: [
+    ['featureId', {}],
+    ['name', {}],
+    ['type', {}],
+    ['owner', {}],
+    ['status', {}],
+    ['raisedOn', {}],
+    // "Due" accepts a count of days as well as a date, counted from Start.
+    ['dueDate', { daysFrom: 'raisedOn' }],
+    ['notes', {}],
+  ],
+  event: [
+    ['featureId', {}],
+    ['name', { label: 'Event' }],
+    ['dueDate', { label: 'When', required: true }],
+    // Required here, unlike the base field: a blank actor means "ours", which
+    // would silently turn the event into our workload in every rollup.
+    ['actor', { label: 'Done by / triggered by', required: true }],
+    ['notes', {}],
+  ],
+}
+
+/** The fields the form shows (and validates) for one variant of an action. */
+export function actionFormFields(variant: ActionVariant): Field[] {
+  return VARIANT_FIELDS[variant].map(([key, overrides]) => ({
+    ...fieldOf(entities.action, key)!,
+    ...overrides,
+  }))
 }
